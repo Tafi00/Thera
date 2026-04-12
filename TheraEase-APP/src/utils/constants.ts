@@ -8,6 +8,7 @@ export const PAIN_AREAS = {
   UPPER_BACK: 'upper_back',
   MIDDLE_BACK: 'middle_back',
   LOWER_BACK: 'lower_back',
+  GLUTES: 'glutes',
   
   // Tay (mới thêm - để phân biệt tê tay)
   ARM_LEFT: 'arm_left',
@@ -89,6 +90,7 @@ export const PAIN_AREA_LABELS: Record<string, string> = {
   upper_back: 'Lưng trên',
   middle_back: 'Lưng giữa',
   lower_back: 'Lưng dưới',
+  glutes: 'Mông / Eo dưới',
   
   // Tay
   arm_left: 'Cánh tay trái',

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Switch } from 'react-native';
-import Body from 'react-native-body-highlighter';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/utils/theme';
 import { getPainAreaLabel, PAIN_AREAS } from '@/utils/constants';
+import BackBodySVG from './BackBodySVG';
+
 
 interface BodyMapProps {
   selectedAreas: Record<string, number>;
@@ -14,14 +15,12 @@ const BODY_REGIONS = [
   { id: PAIN_AREAS.NECK, label: 'Cổ' },
   { id: PAIN_AREAS.SHOULDER_LEFT, label: 'Vai trái' },
   { id: PAIN_AREAS.SHOULDER_RIGHT, label: 'Vai phải' },
-  { id: PAIN_AREAS.UPPER_BACK, label: 'Lưng trên' },
-  { id: PAIN_AREAS.MIDDLE_BACK, label: 'Lưng giữa' },
-  { id: PAIN_AREAS.LOWER_BACK, label: 'Lưng dưới' },
+  { id: PAIN_AREAS.LOWER_BACK, label: 'Lưng' },
+  { id: PAIN_AREAS.GLUTES, label: 'Mông / Eo' },
 ];
 
 export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [isBack, setIsBack] = useState(false);
 
   const getPainColor = (level: number) => {
     if (level === 0) return colors.painNone;
@@ -30,122 +29,9 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
     return colors.painSevere;
   };
 
-  const mapPartToArea = (slug: string, side?: string): string | null => {
-    if (slug === 'neck') return PAIN_AREAS.NECK;
-    if (slug === 'deltoids') return side === 'left' ? PAIN_AREAS.SHOULDER_LEFT : PAIN_AREAS.SHOULDER_RIGHT;
-    if (slug === 'upper-back') return PAIN_AREAS.UPPER_BACK;
-    if (slug === 'trapezius') return PAIN_AREAS.MIDDLE_BACK;
-    if (slug === 'lower-back') return PAIN_AREAS.LOWER_BACK;
-    
-    if (slug === 'biceps' || slug === 'triceps' || slug === 'forearm') return side === 'left' ? PAIN_AREAS.ARM_LEFT : PAIN_AREAS.ARM_RIGHT;
-    if (slug === 'hands') return side === 'left' ? PAIN_AREAS.HAND_LEFT : PAIN_AREAS.HAND_RIGHT;
-    
-    if (slug === 'quadriceps' || slug === 'hamstring' || slug === 'gluteal') return side === 'left' ? PAIN_AREAS.THIGH_LEFT : PAIN_AREAS.THIGH_RIGHT;
-    if (slug === 'calves' || slug === 'tibialis') return side === 'left' ? PAIN_AREAS.LEG_LEFT : PAIN_AREAS.LEG_RIGHT;
-    if (slug === 'feet') return side === 'left' ? PAIN_AREAS.FOOT_LEFT : PAIN_AREAS.FOOT_RIGHT;
-    
-    return null;
-  };
-
-  const getHighlighterData = () => {
-    const data: Array<{ slug: any, side?: 'left'|'right', color: string, styles?: any }> = [];
-    // Chỉ lấy vùng đau duy nhất để hiển thị
-    const effectiveArea = selectedArea || Object.keys(selectedAreas).pop();
-
-    const addPart = (area: string, slug: string, side?: 'left'|'right') => {
-      // Chỉ tô màu cho hiệu ứng vùng đau DUY NHẤT này
-      if (area === effectiveArea && selectedAreas[area] !== undefined && !selectedArea) {
-        const color = getPainColor(selectedAreas[area]);
-        data.push({
-          slug,
-          side,
-          color,
-          styles: { fill: color, stroke: color, strokeWidth: 4 }
-        });
-      }
-    };
-
-    addPart(PAIN_AREAS.NECK, 'neck');
-    addPart(PAIN_AREAS.SHOULDER_LEFT, 'deltoids', 'left');
-    addPart(PAIN_AREAS.SHOULDER_RIGHT, 'deltoids', 'right');
-    addPart(PAIN_AREAS.UPPER_BACK, 'upper-back');
-    addPart(PAIN_AREAS.MIDDLE_BACK, 'trapezius');
-    addPart(PAIN_AREAS.LOWER_BACK, 'lower-back');
-    
-    addPart(PAIN_AREAS.ARM_LEFT, 'biceps', 'left');
-    addPart(PAIN_AREAS.ARM_LEFT, 'triceps', 'left');
-    addPart(PAIN_AREAS.ARM_LEFT, 'forearm', 'left');
-    
-    addPart(PAIN_AREAS.ARM_RIGHT, 'biceps', 'right');
-    addPart(PAIN_AREAS.ARM_RIGHT, 'triceps', 'right');
-    addPart(PAIN_AREAS.ARM_RIGHT, 'forearm', 'right');
-
-    addPart(PAIN_AREAS.HAND_LEFT, 'hands', 'left');
-    addPart(PAIN_AREAS.HAND_RIGHT, 'hands', 'right');
-    
-    addPart(PAIN_AREAS.THIGH_LEFT, 'quadriceps', 'left');
-    addPart(PAIN_AREAS.THIGH_LEFT, 'hamstring', 'left');
-    addPart(PAIN_AREAS.THIGH_LEFT, 'gluteal', 'left');
-
-    addPart(PAIN_AREAS.THIGH_RIGHT, 'quadriceps', 'right');
-    addPart(PAIN_AREAS.THIGH_RIGHT, 'hamstring', 'right');
-    addPart(PAIN_AREAS.THIGH_RIGHT, 'gluteal', 'right');
-
-    addPart(PAIN_AREAS.LEG_LEFT, 'calves', 'left');
-    addPart(PAIN_AREAS.LEG_LEFT, 'tibialis', 'left');
-
-    addPart(PAIN_AREAS.LEG_RIGHT, 'calves', 'right');
-    addPart(PAIN_AREAS.LEG_RIGHT, 'tibialis', 'right');
-
-    addPart(PAIN_AREAS.FOOT_LEFT, 'feet', 'left');
-    addPart(PAIN_AREAS.FOOT_RIGHT, 'feet', 'right');
-    
-    if (selectedArea) {
-      const highlight = (slug: string, side?: 'left'|'right') => {
-         // @ts-ignore - checking custom props
-         const existing = data.find(d => d.slug === slug && (d.side === side || !side));
-         if (existing) {
-           existing.color = '#3B82F6';
-           existing.styles = { fill: '#3B82F6', stroke: '#3B82F6', strokeWidth: 4 };
-         } else {
-           // @ts-ignore
-           data.push({ slug, side, color: '#93C5FD', styles: { fill: '#93C5FD', stroke: '#93C5FD', strokeWidth: 4 } });
-         }
-      };
-
-      switch(selectedArea) {
-        case PAIN_AREAS.NECK: highlight('neck'); break;
-        case PAIN_AREAS.SHOULDER_LEFT: highlight('deltoids', 'left'); break;
-        case PAIN_AREAS.SHOULDER_RIGHT: highlight('deltoids', 'right'); break;
-        case PAIN_AREAS.UPPER_BACK: highlight('upper-back'); break;
-        case PAIN_AREAS.MIDDLE_BACK: highlight('trapezius'); break;
-        case PAIN_AREAS.LOWER_BACK: highlight('lower-back'); break;
-        case PAIN_AREAS.ARM_LEFT: 
-          highlight('biceps', 'left'); highlight('triceps', 'left'); highlight('forearm', 'left'); break;
-        case PAIN_AREAS.ARM_RIGHT: 
-          highlight('biceps', 'right'); highlight('triceps', 'right'); highlight('forearm', 'right'); break;
-        case PAIN_AREAS.HAND_LEFT: highlight('hands', 'left'); break;
-        case PAIN_AREAS.HAND_RIGHT: highlight('hands', 'right'); break;
-        case PAIN_AREAS.THIGH_LEFT: 
-          highlight('quadriceps', 'left'); highlight('hamstring', 'left'); highlight('gluteal', 'left'); break;
-        case PAIN_AREAS.THIGH_RIGHT: 
-          highlight('quadriceps', 'right'); highlight('hamstring', 'right'); highlight('gluteal', 'right'); break;
-        case PAIN_AREAS.LEG_LEFT: highlight('calves', 'left'); highlight('tibialis', 'left'); break;
-        case PAIN_AREAS.LEG_RIGHT: highlight('calves', 'right'); highlight('tibialis', 'right'); break;
-        case PAIN_AREAS.FOOT_LEFT: highlight('feet', 'left'); break;
-        case PAIN_AREAS.FOOT_RIGHT: highlight('feet', 'right'); break;
-      }
-    }
-
-    return data;
-  };
-
-  const handleBodyPartPress = (part: any) => {
+  const handleBodyPartPress = (areaId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const mappedArea = mapPartToArea(part.slug, part.side);
-    if (mappedArea) {
-      setSelectedArea(mappedArea);
-    }
+    setSelectedArea(areaId);
   };
 
   const handleLevelSelect = (level: number) => {
@@ -161,34 +47,12 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
         <Text style={styles.mapHint}>Chạm vào cơ thể để chọn vùng bị đau và chọn mức độ.</Text>
 
         <View style={styles.mapCanvas}>
-          <View style={{ transform: [{ translateY: -10 }] }}>
-            <Body
-              data={getHighlighterData()}
-              onBodyPartPress={handleBodyPartPress}
-              gender="male"
-              side={isBack ? "back" : "front"}
-              scale={1.7}
-              defaultFill="#475569"
-              defaultStroke="#475569"
-              defaultStrokeWidth={4}
-              border="none"
-            />
-          </View>
-        </View>
-
-        {/* Front / Back Toggle */}
-        <View style={styles.toggleContainer}>
-          <Text style={[styles.toggleLabel, !isBack && styles.toggleLabelActive]}>Front</Text>
-          <Switch
-            value={isBack}
-            onValueChange={(val) => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setIsBack(val);
-            }}
-            trackColor={{ false: '#3B82F6', true: '#3B82F6' }}
-            thumbColor={'#FFFFFF'}
+          <BackBodySVG 
+            onAreaPress={handleBodyPartPress}
+            selectedArea={selectedArea}
+            selectedAreas={selectedAreas}
+            getPainColor={getPainColor}
           />
-          <Text style={[styles.toggleLabel, isBack && styles.toggleLabelActive]}>Back</Text>
         </View>
 
         <View style={styles.regionLegend}>
