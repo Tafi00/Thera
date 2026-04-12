@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '@/utils/theme';
 import { getPainAreaLabel, PAIN_AREAS } from '@/utils/constants';
 import BackBodySVG from './BackBodySVG';
+import FrontBodySVG from './FrontBodySVG';
 
 
 interface BodyMapProps {
@@ -11,7 +12,7 @@ interface BodyMapProps {
   onAreaPress: (area: string, level: number) => void;
 }
 
-const BODY_REGIONS = [
+const BACK_REGIONS = [
   { id: PAIN_AREAS.NECK, label: 'Cổ' },
   { id: PAIN_AREAS.SHOULDER_LEFT, label: 'Vai trái' },
   { id: PAIN_AREAS.SHOULDER_RIGHT, label: 'Vai phải' },
@@ -19,8 +20,19 @@ const BODY_REGIONS = [
   { id: PAIN_AREAS.GLUTES, label: 'Mông / Eo' },
 ];
 
+const FRONT_REGIONS = [
+  { id: PAIN_AREAS.NECK, label: 'Cổ' },
+  { id: PAIN_AREAS.SHOULDER_LEFT, label: 'Vai trái' },
+  { id: PAIN_AREAS.SHOULDER_RIGHT, label: 'Vai phải' },
+  { id: PAIN_AREAS.CHEST, label: 'Ngực' },
+  { id: PAIN_AREAS.ABDOMEN, label: 'Bụng' },
+];
+
 export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'FRONT' | 'BACK'>('BACK');
+
+  const currentRegions = viewMode === 'FRONT' ? FRONT_REGIONS : BACK_REGIONS;
 
   const getPainColor = (level: number) => {
     if (level === 0) return colors.painNone;
@@ -46,34 +58,61 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
       <View style={styles.mapCard}>
         <Text style={styles.mapHint}>Chạm vào cơ thể để chọn vùng bị đau và chọn mức độ.</Text>
 
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'FRONT' && styles.toggleButtonActive]}
+            onPress={() => {
+              setViewMode('FRONT');
+              setSelectedArea(null);
+            }}
+          >
+            <Text style={[styles.toggleText, viewMode === 'FRONT' && styles.toggleTextActive]}>Mặt trước</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'BACK' && styles.toggleButtonActive]}
+            onPress={() => {
+              setViewMode('BACK');
+              setSelectedArea(null);
+            }}
+          >
+            <Text style={[styles.toggleText, viewMode === 'BACK' && styles.toggleTextActive]}>Mặt sau</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.mapCanvas}>
-          <BackBodySVG 
-            onAreaPress={handleBodyPartPress}
-            selectedArea={selectedArea}
-            selectedAreas={selectedAreas}
-            getPainColor={getPainColor}
-          />
+          {viewMode === 'FRONT' ? (
+            <FrontBodySVG 
+              onAreaPress={handleBodyPartPress}
+              selectedArea={selectedArea}
+              selectedAreas={selectedAreas}
+              getPainColor={getPainColor}
+            />
+          ) : (
+            <BackBodySVG 
+              onAreaPress={handleBodyPartPress}
+              selectedArea={selectedArea}
+              selectedAreas={selectedAreas}
+              getPainColor={getPainColor}
+            />
+          )}
         </View>
 
         <View style={styles.regionLegend}>
-          {BODY_REGIONS.map((region) => {
+          {currentRegions.map((region) => {
             const effectiveArea = selectedArea || Object.keys(selectedAreas).pop();
             const isActive = region.id === effectiveArea;
             const savedLevel = selectedAreas[region.id];
             
-            let badgeColor = '#CBD5E1'; // Xám mặc định cho các vùng không được chọn
+            let badgeColor = '#CBD5E1';
             let displayLevel = null;
 
             if (isActive) {
               if (selectedArea === region.id) {
-                // Khi đang ở trạng thái chỉnh sửa (đang mở popup), body map 
-                // đang hiển thị màu xanh (#93C5FD), nên chấm cũng phải là màu xanh để đồng bộ.
                 badgeColor = '#93C5FD';
                 if (savedLevel !== undefined) {
                   displayLevel = savedLevel;
                 }
               } else if (savedLevel !== undefined) {
-                // Khi không mở popup, body map sẽ dùng màu của mức độ đau báo hiệu
                 badgeColor = getPainColor(savedLevel);
                 displayLevel = savedLevel;
               }
@@ -183,13 +222,25 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     gap: 12,
   },
-  toggleLabel: {
+  toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  toggleText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  toggleLabelActive: {
-    color: colors.text,
+  toggleTextActive: {
+    color: '#FFFFFF',
   },
   regionLegend: {
     flexDirection: 'row',

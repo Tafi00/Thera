@@ -2,34 +2,34 @@ import React from 'react';
 import Svg, { Path, G } from 'react-native-svg';
 import { View, StyleSheet } from 'react-native';
 
-interface BackBodySVGProps {
+interface FrontBodySVGProps {
   onAreaPress: (areaId: string) => void;
   selectedArea: string | null;
   selectedAreas: Record<string, number>;
   getPainColor: (level: number) => string;
 }
 
-export default function BackBodySVG({
+export default function FrontBodySVG({
   onAreaPress,
   selectedArea,
   selectedAreas,
   getPainColor,
-}: BackBodySVGProps) {
+}: FrontBodySVGProps) {
   
   const ZONES = {
     NECK: 'neck',
     SHOULDER_LEFT: 'shoulder_left',
     SHOULDER_RIGHT: 'shoulder_right',
-    LOWER_BACK: 'lower_back',
-    GLUTES: 'glutes'
+    CHEST: 'chest',
+    ABDOMEN: 'abdomen'
   };
 
   const ZONES_PATHS = {
     [ZONES.NECK]: "M 85 90 L 115 90 L 115 110 Q 125 145 155 170 L 45 170 Q 75 145 85 110 Z",
-    [ZONES.SHOULDER_LEFT]: "M 85 110 Q 60 100 30 130 Q 20 150 15 170 L 45 170 Q 75 145 85 110 Z",
-    [ZONES.SHOULDER_RIGHT]: "M 115 110 Q 140 100 170 130 Q 180 150 185 170 L 155 170 Q 125 145 115 110 Z",
-    [ZONES.LOWER_BACK]: "M 45 170 L 155 170 Q 150 220 145 270 L 55 270 Q 50 220 45 170 Z",
-    [ZONES.GLUTES]: "M 55 270 L 145 270 Q 155 300 160 340 Q 150 390 130 390 Q 110 390 100 370 Q 90 390 70 390 Q 50 390 40 340 Q 45 300 55 270 Z"
+    [ZONES.SHOULDER_RIGHT]: "M 85 110 Q 60 100 30 130 Q 20 150 15 170 L 45 170 Q 75 145 85 110 Z",
+    [ZONES.SHOULDER_LEFT]: "M 115 110 Q 140 100 170 130 Q 180 150 185 170 L 155 170 Q 125 145 115 110 Z",
+    [ZONES.CHEST]: "M 45 170 L 155 170 Q 150 220 145 270 L 55 270 Q 50 220 45 170 Z",
+    [ZONES.ABDOMEN]: "M 55 270 L 145 270 Q 155 300 160 340 Q 150 390 130 390 Q 110 390 100 370 Q 90 390 70 390 Q 50 390 40 340 Q 45 300 55 270 Z"
   };
 
   const NON_INTERACTIVE_PATHS = [
@@ -38,6 +38,13 @@ export default function BackBodySVG({
     "M 185 170 Q 190 215 200 260 L 170 260 Q 160 215 155 170 Z",
     "M 40 340 L 40 410 L 95 410 L 95 350 Z",
     "M 160 340 L 160 410 L 105 410 L 105 350 Z"
+  ];
+
+  const DECORATIVE_PATHS = [
+    "M 90 120 Q 60 115 40 135",
+    "M 110 120 Q 140 115 160 135",
+    "M 60 180 Q 80 195 100 185 Q 120 195 140 180",
+    "M 98 260 A 2 2 0 1 0 102 260 A 2 2 0 1 0 98 260"
   ];
 
   const getFillColor = (zoneId: string) => {
@@ -61,6 +68,9 @@ export default function BackBodySVG({
         <G strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">
           {NON_INTERACTIVE_PATHS.map((pathData, index) => (
             <Path key={`static-${index}`} d={pathData} fill="#F8FAFC" stroke="#CBD5E1" />
+          ))}
+          {DECORATIVE_PATHS.map((pathData, index) => (
+            <Path key={`decor-${index}`} d={pathData} fill="none" stroke="#CBD5E1" strokeWidth="1.5" />
           ))}
           {Object.entries(ZONES_PATHS).map(([zoneId, pathData]) => (
             <Path
