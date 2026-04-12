@@ -40,6 +40,13 @@ export default function BackBodySVG({
     "M 160 340 L 160 410 L 105 410 L 105 350 Z"
   ];
 
+  const DECORATIVE_PATHS = [
+    "M 100 110 L 100 270", // Cột sống (Spine)
+    "M 75 130 Q 85 150 75 175", // Xương bả vai trái 
+    "M 125 130 Q 115 150 125 175", // Xương bả vai phải
+    "M 100 270 L 100 330" // Đường rãnh mông
+  ];
+
   const getFillColor = (zoneId: string) => {
     if (selectedArea) {
       if (zoneId === selectedArea) return '#BFDBFE'; 
@@ -61,6 +68,9 @@ export default function BackBodySVG({
         <G strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">
           {NON_INTERACTIVE_PATHS.map((pathData, index) => (
             <Path key={`static-${index}`} d={pathData} fill="#F8FAFC" stroke="#CBD5E1" />
+          ))}
+          {DECORATIVE_PATHS.map((pathData, index) => (
+            <Path key={`decor-${index}`} d={pathData} fill="none" stroke="#CBD5E1" strokeWidth="2.5" opacity={0.6} />
           ))}
           {Object.entries(ZONES_PATHS).map(([zoneId, pathData]) => (
             <Path

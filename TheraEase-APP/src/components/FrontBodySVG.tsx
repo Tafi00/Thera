@@ -29,22 +29,36 @@ export default function FrontBodySVG({
     [ZONES.SHOULDER_RIGHT]: "M 85 110 Q 60 100 30 130 Q 20 150 15 170 L 45 170 Q 75 145 85 110 Z",
     [ZONES.SHOULDER_LEFT]: "M 115 110 Q 140 100 170 130 Q 180 150 185 170 L 155 170 Q 125 145 115 110 Z",
     [ZONES.CHEST]: "M 45 170 L 155 170 Q 150 220 145 270 L 55 270 Q 50 220 45 170 Z",
-    [ZONES.ABDOMEN]: "M 55 270 L 145 270 Q 155 300 160 340 Q 150 390 130 390 Q 110 390 100 370 Q 90 390 70 390 Q 50 390 40 340 Q 45 300 55 270 Z"
+    [ZONES.ABDOMEN]: "M 55 270 L 145 270 Q 155 300 160 340 L 100 370 L 40 340 Q 45 300 55 270 Z"
   };
 
   const NON_INTERACTIVE_PATHS = [
     "M 85 90 L 115 90 Q 130 85 130 50 A 30 30 0 0 0 70 50 Q 70 85 85 90 Z",
     "M 15 170 Q 10 215 0 260 L 30 260 Q 40 215 45 170 Z",
     "M 185 170 Q 190 215 200 260 L 170 260 Q 160 215 155 170 Z",
-    "M 40 340 L 40 410 L 95 410 L 95 350 Z",
-    "M 160 340 L 160 410 L 105 410 L 105 350 Z"
+    "M 40 340 L 40 410 L 95 410 L 95 367.5 Z",
+    "M 160 340 L 160 410 L 105 410 L 105 367.5 Z"
   ];
 
   const DECORATIVE_PATHS = [
+    // Khuôn mặt (Mắt và Miệng)
+    "M 90 65 A 1 1 0 1 0 92 65 A 1 1 0 1 0 90 65",
+    "M 108 65 A 1 1 0 1 0 110 65 A 1 1 0 1 0 108 65",
+    "M 95 78 Q 100 83 105 78",
+
+    // Xương đòn
     "M 90 120 Q 60 115 40 135",
     "M 110 120 Q 140 115 160 135",
+    
+    // Ngực
     "M 60 180 Q 80 195 100 185 Q 120 195 140 180",
-    "M 98 260 A 2 2 0 1 0 102 260 A 2 2 0 1 0 98 260"
+    
+    // Rốn
+    "M 98 260 A 2 2 0 1 0 102 260 A 2 2 0 1 0 98 260",
+
+    // Đường bẹn (Groin) - Xóa bớt path cũ vì path mới của Abdomen đã thể hiện chữ V rồi
+    // Giữ lại 1 đường rãnh nhẹ cho giống đồ giải phẫu
+    "M 100 345 L 100 370"
   ];
 
   const getFillColor = (zoneId: string) => {
