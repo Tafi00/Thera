@@ -4,7 +4,6 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '@/utils/theme';
 import { getPainAreaLabel, PAIN_AREAS } from '@/utils/constants';
 import BackBodySVG from './BackBodySVG';
-import FrontBodySVG from './FrontBodySVG';
 
 
 interface BodyMapProps {
@@ -20,19 +19,8 @@ const BACK_REGIONS = [
   { id: PAIN_AREAS.GLUTES, label: 'Mông / Eo' },
 ];
 
-const FRONT_REGIONS = [
-  { id: PAIN_AREAS.NECK, label: 'Cổ' },
-  { id: PAIN_AREAS.SHOULDER_LEFT, label: 'Vai trái' },
-  { id: PAIN_AREAS.SHOULDER_RIGHT, label: 'Vai phải' },
-  { id: PAIN_AREAS.CHEST, label: 'Ngực' },
-  { id: PAIN_AREAS.ABDOMEN, label: 'Bụng' },
-];
-
 export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'FRONT' | 'BACK'>('BACK');
-
-  const currentRegions = viewMode === 'FRONT' ? FRONT_REGIONS : BACK_REGIONS;
 
   const getPainColor = (level: number) => {
     if (level === 0) return colors.painNone;
@@ -59,61 +47,16 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
         <Text style={styles.mapHint}>Chạm vào cơ thể để chọn vùng bị đau và chọn mức độ.</Text>
 
         <View style={styles.mapCanvas}>
-          {viewMode === 'FRONT' ? (
-            <FrontBodySVG 
-              onAreaPress={handleBodyPartPress}
-              selectedArea={selectedArea}
-              selectedAreas={selectedAreas}
-              getPainColor={getPainColor}
-            />
-          ) : (
-            <BackBodySVG 
-              onAreaPress={handleBodyPartPress}
-              selectedArea={selectedArea}
-              selectedAreas={selectedAreas}
-              getPainColor={getPainColor}
-            />
-          )}
-        </View>
-
-        <View style={styles.modernToggleContainer}>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
-            onPress={() => {
-              setViewMode('FRONT');
-              setSelectedArea(null);
-            }}
-          >
-            <Text style={[styles.modernToggleText, viewMode === 'FRONT' && styles.modernToggleTextActive]}>Mặt trước</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.modernSwitchTrack} 
-            activeOpacity={0.9}
-            onPress={() => {
-              setViewMode(viewMode === 'FRONT' ? 'BACK' : 'FRONT');
-              setSelectedArea(null);
-            }}
-          >
-            <View style={[
-              styles.modernSwitchThumb, 
-              viewMode === 'BACK' ? styles.modernSwitchThumbRight : styles.modernSwitchThumbLeft
-            ]} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            activeOpacity={0.7} 
-            onPress={() => {
-              setViewMode('BACK');
-              setSelectedArea(null);
-            }}
-          >
-            <Text style={[styles.modernToggleText, viewMode === 'BACK' && styles.modernToggleTextActive]}>Mặt sau</Text>
-          </TouchableOpacity>
+          <BackBodySVG 
+            onAreaPress={handleBodyPartPress}
+            selectedArea={selectedArea}
+            selectedAreas={selectedAreas}
+            getPainColor={getPainColor}
+          />
         </View>
 
         <View style={styles.regionLegend}>
-          {currentRegions.map((region) => {
+          {BACK_REGIONS.map((region) => {
             const effectiveArea = selectedArea || Object.keys(selectedAreas).pop();
             const isActive = region.id === effectiveArea;
             const savedLevel = selectedAreas[region.id];
@@ -229,47 +172,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     marginTop: 15,
     overflow: 'hidden',
-  },
-  modernToggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 16,
-    gap: 16,
-  },
-  modernToggleText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  modernToggleTextActive: {
-    color: colors.text,
-    fontWeight: '600',
-  },
-  modernSwitchTrack: {
-    width: 48,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#DBEAFE',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  modernSwitchThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primary,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  modernSwitchThumbLeft: {
-    alignSelf: 'flex-start',
-  },
-  modernSwitchThumbRight: {
-    alignSelf: 'flex-end',
   },
   regionLegend: {
     flexDirection: 'row',
