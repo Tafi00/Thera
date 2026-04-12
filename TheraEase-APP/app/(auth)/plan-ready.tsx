@@ -112,7 +112,7 @@ export default function PlanReadyScreen() {
                         entering={ZoomIn.delay(100 * index).duration(400)}
                         style={[styles.gridItem, { width: '47%' }]}
                       >
-                         <Text style={[styles.dayNumber, day.isRest && styles.restNumber]}>{day.id}</Text>
+                         <Text style={styles.dayNumber}>{day.id}</Text>
                       </Animated.View>
                    ))}
                 </View>
@@ -135,7 +135,7 @@ export default function PlanReadyScreen() {
                      entering={ZoomIn.delay(100 * (index + 4)).duration(400)}
                      style={styles.gridItem}
                    >
-                      <Text style={[styles.dayNumber, day.isRest && styles.restNumber]}>{day.id}</Text>
+                      <Text style={styles.dayNumber}>{day.id}</Text>
                    </Animated.View>
                 ))}
                 <View style={{ width: '23%' }} />
@@ -295,9 +295,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#10B981',
-  },
-  restNumber: {
-    color: '#9CA3AF',
   },
   ctaButton: {
     backgroundColor: '#3B82F6',

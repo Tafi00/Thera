@@ -4,7 +4,7 @@ import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown, FadeIn } from 'react-native-reanimated';
 import { ArrowRight, Home } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -17,10 +17,6 @@ export default function SplashScreen() {
     router.replace('/(auth)/welcome');
   };
   
-  const handleLogin = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.replace('/(auth)/login');
-  };
 
   return (
     <View style={styles.container}>
@@ -33,18 +29,20 @@ export default function SplashScreen() {
           <View style={styles.content}>
             
             {/* Center Logo Section */}
-            <Animated.View entering={FadeInUp.duration(1000)} style={styles.logoContainer}>
-              <View style={styles.logoImageContainer}>
+            <View style={styles.logoContainer}>
+              <Animated.View entering={FadeInUp.duration(1000)} style={styles.logoImageContainer}>
                 <Image 
                   source={require('../../assets/TheraHome_logo_black.png')} 
                   style={styles.logoImage} 
                   resizeMode="contain" 
                  />
-              </View>
-              <Text style={styles.subtitle}>
-                14 NGÀY CẢI THIỆN TẠI NHÀ CÙNG AI
-              </Text>
-            </Animated.View>
+              </Animated.View>
+              <Animated.View entering={FadeIn.delay(1000).duration(1500)}>
+                <Text style={styles.subtitle}>
+                  14 NGÀY CẢI THIỆN TẠI NHÀ CÙNG AI
+                </Text>
+              </Animated.View>
+            </View>
 
             {/* Bottom Actions */}
             <View style={styles.bottomSection}>
@@ -55,11 +53,6 @@ export default function SplashScreen() {
                 </TouchableOpacity>
               </Animated.View>
 
-              <Animated.View entering={FadeInDown.delay(700).duration(800)}>
-                <TouchableOpacity onPress={handleLogin} activeOpacity={0.7} style={styles.loginLink}>
-                  <Text style={styles.loginText}>Tiếp tục với tài khoản hiện có của bạn</Text>
-                </TouchableOpacity>
-              </Animated.View>
             </View>
 
           </View>
@@ -131,18 +124,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  loginLink: {
-    marginTop: 20,
-    alignItems: 'center',
-    padding: 10,
-  },
-  loginText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
+  }
 });

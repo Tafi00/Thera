@@ -48,18 +48,19 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
   };
 
   const getHighlighterData = () => {
-    const data: Array<{ slug: any, side?: 'left'|'right', color: string }> = [];
-    
+    const data: Array<{ slug: any, side?: 'left'|'right', color: string, styles?: any }> = [];
     // Chỉ lấy vùng đau duy nhất để hiển thị
     const effectiveArea = selectedArea || Object.keys(selectedAreas).pop();
 
     const addPart = (area: string, slug: string, side?: 'left'|'right') => {
       // Chỉ tô màu cho hiệu ứng vùng đau DUY NHẤT này
       if (area === effectiveArea && selectedAreas[area] !== undefined && !selectedArea) {
+        const color = getPainColor(selectedAreas[area]);
         data.push({
           slug,
           side,
-          color: getPainColor(selectedAreas[area])
+          color,
+          styles: { fill: color, stroke: color, strokeWidth: 4 }
         });
       }
     };
@@ -101,11 +102,14 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
     
     if (selectedArea) {
       const highlight = (slug: string, side?: 'left'|'right') => {
+         // @ts-ignore - checking custom props
          const existing = data.find(d => d.slug === slug && (d.side === side || !side));
          if (existing) {
            existing.color = '#3B82F6';
+           existing.styles = { fill: '#3B82F6', stroke: '#3B82F6', strokeWidth: 4 };
          } else {
-           data.push({ slug, side, color: '#93C5FD' });
+           // @ts-ignore
+           data.push({ slug, side, color: '#93C5FD', styles: { fill: '#93C5FD', stroke: '#93C5FD', strokeWidth: 4 } });
          }
       };
 
@@ -157,14 +161,19 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
         <Text style={styles.mapHint}>Chạm vào cơ thể để chọn vùng bị đau và chọn mức độ.</Text>
 
         <View style={styles.mapCanvas}>
-          <Body
-            data={getHighlighterData()}
-            onBodyPartPress={handleBodyPartPress}
-            gender="male"
-            side={isBack ? "back" : "front"}
-            scale={1.15}
-            defaultFill="#E2E8F0"
-          />
+          <View style={{ transform: [{ translateY: -10 }] }}>
+            <Body
+              data={getHighlighterData()}
+              onBodyPartPress={handleBodyPartPress}
+              gender="male"
+              side={isBack ? "back" : "front"}
+              scale={1.7}
+              defaultFill="#475569"
+              defaultStroke="#475569"
+              defaultStrokeWidth={4}
+              border="none"
+            />
+          </View>
         </View>
 
         {/* Front / Back Toggle */}
@@ -297,10 +306,11 @@ const styles = StyleSheet.create({
   },
   mapCanvas: {
     width: '100%',
-    height: 400,
+    height: 360,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
+    justifyContent: 'flex-start',
+    marginTop: 15,
+    overflow: 'hidden',
   },
   toggleContainer: {
     flexDirection: 'row',
