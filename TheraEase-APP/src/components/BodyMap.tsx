@@ -58,27 +58,6 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
       <View style={styles.mapCard}>
         <Text style={styles.mapHint}>Chạm vào cơ thể để chọn vùng bị đau và chọn mức độ.</Text>
 
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[styles.toggleButton, viewMode === 'FRONT' && styles.toggleButtonActive]}
-            onPress={() => {
-              setViewMode('FRONT');
-              setSelectedArea(null);
-            }}
-          >
-            <Text style={[styles.toggleText, viewMode === 'FRONT' && styles.toggleTextActive]}>Mặt trước</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, viewMode === 'BACK' && styles.toggleButtonActive]}
-            onPress={() => {
-              setViewMode('BACK');
-              setSelectedArea(null);
-            }}
-          >
-            <Text style={[styles.toggleText, viewMode === 'BACK' && styles.toggleTextActive]}>Mặt sau</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.mapCanvas}>
           {viewMode === 'FRONT' ? (
             <FrontBodySVG 
@@ -95,6 +74,42 @@ export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
               getPainColor={getPainColor}
             />
           )}
+        </View>
+
+        <View style={styles.modernToggleContainer}>
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            onPress={() => {
+              setViewMode('FRONT');
+              setSelectedArea(null);
+            }}
+          >
+            <Text style={[styles.modernToggleText, viewMode === 'FRONT' && styles.modernToggleTextActive]}>Mặt trước</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.modernSwitchTrack} 
+            activeOpacity={0.9}
+            onPress={() => {
+              setViewMode(viewMode === 'FRONT' ? 'BACK' : 'FRONT');
+              setSelectedArea(null);
+            }}
+          >
+            <View style={[
+              styles.modernSwitchThumb, 
+              viewMode === 'BACK' ? styles.modernSwitchThumbRight : styles.modernSwitchThumbLeft
+            ]} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            onPress={() => {
+              setViewMode('BACK');
+              setSelectedArea(null);
+            }}
+          >
+            <Text style={[styles.modernToggleText, viewMode === 'BACK' && styles.modernToggleTextActive]}>Mặt sau</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.regionLegend}>
@@ -215,32 +230,46 @@ const styles = StyleSheet.create({
     marginTop: 15,
     overflow: 'hidden',
   },
-  toggleContainer: {
+  modernToggleContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 16,
-    gap: 12,
+    gap: 16,
   },
-  toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
+  modernToggleText: {
+    fontSize: 15,
+    fontWeight: '500',
     color: colors.textSecondary,
   },
-  toggleTextActive: {
-    color: '#FFFFFF',
+  modernToggleTextActive: {
+    color: colors.text,
+    fontWeight: '600',
+  },
+  modernSwitchTrack: {
+    width: 48,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#DBEAFE',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  modernSwitchThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  modernSwitchThumbLeft: {
+    alignSelf: 'flex-start',
+  },
+  modernSwitchThumbRight: {
+    alignSelf: 'flex-end',
   },
   regionLegend: {
     flexDirection: 'row',
