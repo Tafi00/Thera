@@ -5,7 +5,17 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
-import Animated, { ZoomIn } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeOut,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 
 import { api } from '@/services/api';
@@ -20,6 +30,17 @@ interface Product {
   name: string;
   purchase_link: string;
 }
+
+const GIFT_CONFETTI = [
+  { left: 34, top: 12, width: 6, height: 10, color: '#22C55E' },
+  { left: 64, top: 2, width: 8, height: 8, color: '#FACC15' },
+  { left: 98, top: 16, width: 6, height: 12, color: '#38BDF8' },
+  { left: 132, top: 6, width: 9, height: 9, color: '#EC4899' },
+  { left: 166, top: 18, width: 6, height: 10, color: '#EF4444' },
+  { left: 52, top: 52, width: 8, height: 8, color: '#A855F7' },
+  { left: 114, top: 48, width: 6, height: 12, color: '#22C55E' },
+  { left: 186, top: 54, width: 8, height: 8, color: '#FACC15' },
+];
 
 const normalizeText = (value: string) =>
   value
@@ -57,6 +78,11 @@ export default function SpecialOfferScreen() {
   const { user } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProductLink, setLoadingProductLink] = useState(true);
+  const [showOffer, setShowOffer] = useState(false);
+  const giftScale = useSharedValue(0.9);
+  const lidProgress = useSharedValue(0);
+  const burstProgress = useSharedValue(0);
+  const offerScale = useSharedValue(0.96);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +108,53 @@ export default function SpecialOfferScreen() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    giftScale.value = withSequence(
+      withSpring(1.06, { damping: 8, stiffness: 160 }),
+      withTiming(0.96, { duration: 160 }),
+      withSpring(1, { damping: 8, stiffness: 140 })
+    );
+    lidProgress.value = withDelay(650, withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) }));
+    burstProgress.value = withDelay(700, withTiming(1, { duration: 760, easing: Easing.out(Easing.cubic) }));
+
+    const revealTimer = setTimeout(() => {
+      offerScale.value = withSpring(1, { damping: 11, stiffness: 120 });
+      setShowOffer(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1650);
+
+    return () => clearTimeout(revealTimer);
+  }, [burstProgress, giftScale, lidProgress, offerScale]);
+
+  const giftWrapStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: giftScale.value }],
+  }));
+
+  const giftLidStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: -26 * lidProgress.value },
+      { translateY: -58 * lidProgress.value },
+      { rotate: `${-28 * lidProgress.value}deg` },
+    ],
+  }));
+
+  const giftGlowStyle = useAnimatedStyle(() => ({
+    opacity: burstProgress.value,
+    transform: [{ scale: 0.75 + burstProgress.value * 0.45 }],
+  }));
+
+  const confettiStyle = useAnimatedStyle(() => ({
+    opacity: burstProgress.value,
+    transform: [
+      { translateY: -78 * burstProgress.value },
+      { scale: 0.7 + burstProgress.value * 0.35 },
+    ],
+  }));
+
+  const offerRevealStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: offerScale.value }],
+  }));
 
   const requestedProductKey = useMemo(() => {
     const rawKey = Array.isArray(productKey) ? productKey[0] : productKey;
@@ -139,7 +212,8 @@ export default function SpecialOfferScreen() {
            >
              <ArrowLeft size={24} color="#1E293B" />
            </TouchableOpacity>
-           <Animated.View entering={ZoomIn.duration(800)} style={styles.offerCard}>
+           {showOffer ? (
+           <Animated.View entering={ZoomIn.duration(650).springify()} style={[styles.offerCard, offerRevealStyle]}>
               
               <View style={styles.tagContainer}>
                  <View style={styles.tagOuter}>
@@ -181,6 +255,41 @@ export default function SpecialOfferScreen() {
               </View>
 
            </Animated.View>
+           ) : (
+             <Animated.View exiting={FadeOut.duration(220)} style={styles.giftStage}>
+               <Animated.View style={[styles.giftGlow, giftGlowStyle]} />
+               <View style={styles.confettiLayer}>
+                 {GIFT_CONFETTI.map((piece, index) => (
+                   <Animated.View
+                     key={`${piece.left}-${piece.top}-${index}`}
+                     style={[
+                       styles.confettiPiece,
+                       {
+                         left: piece.left,
+                         top: piece.top,
+                         width: piece.width,
+                         height: piece.height,
+                         backgroundColor: piece.color,
+                       },
+                       confettiStyle,
+                     ]}
+                   />
+                 ))}
+               </View>
+               <Animated.View style={[styles.giftWrap, giftWrapStyle]}>
+                 <Animated.View style={[styles.giftLid, giftLidStyle]}>
+                   <View style={styles.giftLidRibbonHorizontal} />
+                   <View style={styles.giftLidRibbonVertical} />
+                 </Animated.View>
+                 <View style={styles.giftBox}>
+                   <View style={styles.giftRibbonVertical} />
+                   <View style={styles.giftRibbonHorizontal} />
+                 </View>
+                 <View style={styles.giftShadow} />
+               </Animated.View>
+               <Text style={styles.giftText}>Ưu đãi đặc biệt</Text>
+             </Animated.View>
+           )}
         </SafeAreaView>
       </ImageBackground>
     </View>
@@ -219,6 +328,103 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
+  },
+  giftStage: {
+    width: 260,
+    height: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  giftGlow: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.36)',
+  },
+  confettiLayer: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
+    width: 240,
+    height: 120,
+  },
+  confettiPiece: {
+    position: 'absolute',
+    borderRadius: 2,
+  },
+  giftWrap: {
+    width: 180,
+    height: 168,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  giftLid: {
+    position: 'absolute',
+    top: 24,
+    width: 172,
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    borderWidth: 3,
+    borderColor: '#FCA5A5',
+    zIndex: 2,
+    overflow: 'hidden',
+  },
+  giftLidRibbonHorizontal: {
+    position: 'absolute',
+    top: 21,
+    left: 0,
+    right: 0,
+    height: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  giftLidRibbonVertical: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 74,
+    width: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  giftBox: {
+    width: 156,
+    height: 112,
+    borderRadius: 10,
+    backgroundColor: '#DC2626',
+    borderWidth: 3,
+    borderColor: '#FCA5A5',
+    overflow: 'hidden',
+  },
+  giftRibbonVertical: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 66,
+    width: 24,
+    backgroundColor: '#FFFFFF',
+  },
+  giftRibbonHorizontal: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 42,
+    height: 18,
+    backgroundColor: '#FFFFFF',
+  },
+  giftShadow: {
+    width: 132,
+    height: 14,
+    marginTop: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(15,23,42,0.18)',
+  },
+  giftText: {
+    marginTop: 18,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   offerCard: {
     backgroundColor: '#FFFFFF',

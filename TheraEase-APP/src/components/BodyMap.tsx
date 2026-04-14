@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 360,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     marginTop: 15,
     overflow: 'hidden',
   },

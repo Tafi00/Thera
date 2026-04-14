@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  ImageSourcePropType,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -17,7 +18,7 @@ import { api } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import { getOwnedDeviceIds } from '@/utils/ownedDevices';
 
-const PRODUCT_IMAGES: Record<string, any> = {
+const PRODUCT_IMAGES: Record<string, ImageSourcePropType> = {
   'theraneck.png': require('../assets/theraneck.png'),
   'theraback.png': require('../assets/theraback.png'),
   ech: require('../assets/theraneck.png'),
@@ -33,6 +34,7 @@ type TherapyProduct = {
   id: string;
   key: string;
   name: string;
+  image_url?: string;
   purchase_link?: string;
   is_active?: boolean;
 };
@@ -154,8 +156,14 @@ export default function ProductAssessmentsScreen() {
   }, [isSignedIn, reviewableProducts, reviews, ownedDeviceIds]);
 
   const resolveImageSource = (product: TherapyProduct) => {
-    if (product.key && PRODUCT_IMAGES[product.key]) {
-      return PRODUCT_IMAGES[product.key];
+    const imageUrl = product.image_url?.trim();
+    if (imageUrl) {
+      return { uri: imageUrl };
+    }
+
+    const normalizedKey = product.key?.trim().toLowerCase();
+    if (normalizedKey && PRODUCT_IMAGES[normalizedKey]) {
+      return PRODUCT_IMAGES[normalizedKey];
     }
 
     return null;

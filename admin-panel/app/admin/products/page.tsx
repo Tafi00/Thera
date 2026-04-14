@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Modal from '@/components/Modal';
+import ImageUpload from '@/components/ImageUpload';
 import { showError, showSuccess } from '@/lib/toast';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface Product {
   id: string;
   key: string;
   name: string;
+  image_url: string;
   purchase_link: string;
   is_active: boolean;
   created_at?: string;
@@ -20,14 +22,19 @@ interface Product {
 interface ProductForm {
   key: string;
   name: string;
+  image_url: string;
   purchase_link: string;
 }
 
 const EMPTY_FORM: ProductForm = {
   key: '',
   name: '',
+  image_url: '',
   purchase_link: '',
 };
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -63,6 +70,7 @@ export default function ProductsPage() {
       return (
         product.name.toLowerCase().includes(keyword) ||
         product.key.toLowerCase().includes(keyword) ||
+        (product.image_url || '').toLowerCase().includes(keyword) ||
         product.purchase_link.toLowerCase().includes(keyword)
       );
     });
@@ -79,6 +87,7 @@ export default function ProductsPage() {
     setForm({
       key: product.key,
       name: product.name,
+      image_url: product.image_url || '',
       purchase_link: product.purchase_link || '',
     });
     setShowModal(true);
@@ -105,6 +114,7 @@ export default function ProductsPage() {
       const payload = {
         key: form.key.trim(),
         name: form.name.trim(),
+        image_url: form.image_url.trim(),
         purchase_link: form.purchase_link.trim(),
       };
 
@@ -121,9 +131,9 @@ export default function ProductsPage() {
       }
 
       closeModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Save product error:', error);
-      showError(error.message || 'Không thể lưu sản phẩm');
+      showError(getErrorMessage(error, 'Không thể lưu sản phẩm'));
     } finally {
       setSaving(false);
     }
@@ -138,9 +148,9 @@ export default function ProductsPage() {
       await api.delete(`/products/${product.id}`);
       setProducts((current) => current.filter((item) => item.id !== product.id));
       showSuccess('Đã xóa sản phẩm');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete product error:', error);
-      showError(error.message || 'Không thể xóa sản phẩm');
+      showError(getErrorMessage(error, 'Không thể xóa sản phẩm'));
     }
   };
 
@@ -184,6 +194,7 @@ export default function ProductsPage() {
             <thead>
               <tr>
                 <th>Mã</th>
+                <th>Ảnh</th>
                 <th>Tên sản phẩm</th>
                 <th>Link mua</th>
                 <th>Trạng thái</th>
@@ -194,6 +205,18 @@ export default function ProductsPage() {
               {filteredProducts.map((product) => (
                 <tr key={product.id}>
                   <td className="font-semibold text-slate-900">{product.key}</td>
+                  <td>
+                    {product.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-14 w-14 border border-slate-200 object-contain"
+                      />
+                    ) : (
+                      <span className="text-slate-400">Chưa có</span>
+                    )}
+                  </td>
                   <td className="font-medium text-slate-700">{product.name}</td>
                   <td>
                     {product.purchase_link ? (
@@ -287,6 +310,12 @@ export default function ProductsPage() {
               required
             />
           </div>
+
+          <ImageUpload
+            label="Ảnh sản phẩm"
+            value={form.image_url}
+            onChange={(url) => setForm((current) => ({ ...current, image_url: url }))}
+          />
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">

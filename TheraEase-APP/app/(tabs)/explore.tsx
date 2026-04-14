@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Image, ImageSourcePropType, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Sparkles } from "lucide-react-native";
@@ -8,15 +8,50 @@ import * as Haptics from "expo-haptics";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthStore } from "@/stores/authStore";
 import { getOwnedDeviceIds } from "@/utils/ownedDevices";
+import { api } from "@/services/api";
 
 const NECK_IMAGE = require("../../assets/theraneck.png");
 const BACK_IMAGE = require("../../assets/theraback.png");
+
+type Product = {
+	id: string;
+	key: string;
+	name: string;
+	image_url?: string;
+};
+
+const normalizeText = (value: string) =>
+	value
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+
+const findProduct = (products: Product[], targetKey: "ech" | "rung") =>
+	products.find((product) => {
+		const key = normalizeText(product.key || "");
+		const name = normalizeText(product.name || "");
+
+		if (targetKey === "ech") {
+			return key === "ech" || name.includes("theraneck") || name.includes("neck") || name.includes("co vai");
+		}
+
+		return key === "rung" || name.includes("theraback") || name.includes("back") || name.includes("lung");
+	}) ?? null;
+
+const resolveProductImage = (
+	product: Product | null,
+	fallback: ImageSourcePropType,
+): ImageSourcePropType => {
+	const imageUrl = product?.image_url?.trim();
+	return imageUrl ? { uri: imageUrl } : fallback;
+};
 
 export default function ExploreScreen() {
 	const router = useRouter();
 	const user = useAuthStore((state) => state.user);
 	const { colors, isDark } = useTheme();
 	const insets = useSafeAreaInsets();
+	const [products, setProducts] = useState<Product[]>([]);
 	const ownedDeviceIds = useMemo(
 		() => getOwnedDeviceIds(user?.owned_devices || []),
 		[user?.owned_devices],
@@ -27,6 +62,31 @@ export default function ExploreScreen() {
 		() => createStyles(colors, isDark, insets.top),
 		[colors, isDark, insets.top],
 	);
+	const neckProduct = useMemo(() => findProduct(products, "ech"), [products]);
+	const backProduct = useMemo(() => findProduct(products, "rung"), [products]);
+	const neckImage = useMemo(() => resolveProductImage(neckProduct, NECK_IMAGE), [neckProduct]);
+	const backImage = useMemo(() => resolveProductImage(backProduct, BACK_IMAGE), [backProduct]);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const loadProducts = async () => {
+			try {
+				const data = await api.get<Product[]>("/products");
+				if (isMounted) {
+					setProducts(data || []);
+				}
+			} catch (error) {
+				console.warn("Load explore products error:", error);
+			}
+		};
+
+		void loadProducts();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	return (
 		<View style={styles.container}>
@@ -55,7 +115,7 @@ export default function ExploreScreen() {
 					<View style={styles.productCard}>
 						<View style={styles.imageWrap}>
 							<Image
-								source={NECK_IMAGE}
+								source={neckImage}
 								style={styles.productImage}
 								resizeMode="contain"
 							/>
@@ -104,7 +164,7 @@ export default function ExploreScreen() {
 					<View style={styles.productCard}>
 						<View style={styles.imageWrap}>
 							<Image
-								source={BACK_IMAGE}
+								source={backImage}
 								style={styles.productImage}
 								resizeMode="contain"
 							/>
