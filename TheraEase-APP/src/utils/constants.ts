@@ -91,9 +91,9 @@ export const PAIN_AREA_LABELS: Record<string, string> = {
   shoulder_right: 'Vai phải',
   
   // Lưng
-  upper_back: 'Lưng trên',
+  upper_back: 'Lưng',
   middle_back: 'Lưng giữa',
-  lower_back: 'Lưng dưới',
+  lower_back: 'Thắt lưng',
   glutes: 'Mông / Eo dưới',
   
   // Phía trước

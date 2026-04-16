@@ -15,8 +15,8 @@ const BACK_REGIONS = [
   { id: PAIN_AREAS.NECK, label: 'Cổ' },
   { id: PAIN_AREAS.SHOULDER_LEFT, label: 'Vai trái' },
   { id: PAIN_AREAS.SHOULDER_RIGHT, label: 'Vai phải' },
-  { id: PAIN_AREAS.LOWER_BACK, label: 'Lưng' },
-  { id: PAIN_AREAS.GLUTES, label: 'Mông / Eo' },
+  { id: PAIN_AREAS.UPPER_BACK, label: 'Lưng' },
+  { id: PAIN_AREAS.LOWER_BACK, label: 'Thắt lưng' },
 ];
 
 export default function BodyMap({ selectedAreas, onAreaPress }: BodyMapProps) {
