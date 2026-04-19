@@ -13,6 +13,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { scheduleDailyReminder } from '@/services/notifications';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +28,14 @@ export default function ProfileScreen() {
   const [activationCode, setActivationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      AsyncStorage.getItem('notificationsEnabled').then((val) => {
+        if (val !== null) setNotificationsEnabled(val === 'true');
+      });
+    }, [])
+  );
   const screenGradient: [string, string, string] = isDark
     ? ['#0B1220', '#111827', '#1F2937']
     : ['#EFF6FF', '#FFFFFF', '#F9FAFB'];
@@ -174,6 +184,7 @@ export default function ProfileScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   const newValue = !notificationsEnabled;
                   setNotificationsEnabled(newValue);
+                  await AsyncStorage.setItem('notificationsEnabled', String(newValue));
                   if (newValue && user) {
                     const time = user.preferred_time?.split(':') || ['08', '00'];
                     await scheduleDailyReminder(parseInt(time[0]), parseInt(time[1]));
@@ -205,6 +216,7 @@ export default function ProfileScreen() {
                   onValueChange={async (value) => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setNotificationsEnabled(value);
+                    await AsyncStorage.setItem('notificationsEnabled', String(value));
                     // Note: setupNotifications will be implemented later
                   }}
                   color={colors.primary}

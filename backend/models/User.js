@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
 		surgery_history: { type: String, default: "" },
 		preferred_time: { type: String, default: "08:00" },
 		personalized_plan_started_at: { type: Date, default: null },
+		personalized_plan_completed_at: { type: Date, default: null },
 		personalized_plan_unlock_at: { type: Date, default: null },
 
 		// Access control

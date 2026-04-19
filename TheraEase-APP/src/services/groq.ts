@@ -68,9 +68,33 @@ export async function getExerciseRecommendations(userContext: {
 	pain_areas?: string[];
 	behavior?: any;
 	recent_logs?: any[];
+	available_exercises?: any[];
 }) {
 	const config = await getSystemPrompt("recommendation");
-	const message = `Người dùng có các vấn đề: ${JSON.stringify(userContext)}. Hãy gợi ý bài tập phù hợp.`;
+	
+	const contextWithoutExercises = {
+		pain_areas: userContext.pain_areas,
+		behavior: userContext.behavior,
+		recent_logs: userContext.recent_logs
+	};
+	
+	const exercisesList = (userContext.available_exercises || []).map((ex: any) => ({
+		id: ex.id || ex._id,
+		title: ex.title,
+		category: ex.category
+	}));
+
+	const message = `Người dùng có các vấn đề: ${JSON.stringify(contextWithoutExercises)}.
+    
+Dưới đây là danh sách các bài tập hiện có trên hệ thống: 
+${JSON.stringify(exercisesList)}
+
+Từ danh sách bài tập trên, hãy chọn những bài tập phù hợp nhất (tối đa 5 bài) để hỗ trợ giảm đau và phục hồi. 
+BẮT BUỘC TRẢ VỀ CHÍNH XÁC cấu trúc JSON mảng như sau (KHÔNG giải thích, KHÔNG chứa markdown):
+[
+  { "exercise_id": "id_bài_tập_từ_danh_sách" }
+]`;
+
 	return callGroq(
 		config.system_prompt,
 		message,

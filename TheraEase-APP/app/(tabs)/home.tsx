@@ -86,11 +86,14 @@ export default function HomeScreen() {
   const scoreNumber = useSharedValue(0);
 
   const personalizedPlanUnlocked = useMemo(() => {
+    // nếu Bypassed thì comment dòng 90-93
+    if (!user?.personalized_plan_completed_at) return false;
     if (!user?.personalized_plan_unlock_at) return false;
     const unlockAt = new Date(user.personalized_plan_unlock_at).getTime();
     if (Number.isNaN(unlockAt)) return false;
     return Date.now() >= unlockAt;
-  }, [user?.personalized_plan_unlock_at]);
+    // return true; // Bypassed for testing
+  }, [user?.personalized_plan_completed_at, user?.personalized_plan_unlock_at]);
 
   const motivationMessages = [
     'Tiếp tục cố gắng!',
@@ -115,7 +118,14 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadWaterToday();
-    }, [user?.id])
+
+      // Update SMART Notification scheduling whenever the user visits the home screen (which acts as an "app open" activity tracker)
+      if (user && user.id !== 'guest') {
+        import('@/services/notifications').then((module) => {
+          module.rescheduleSmartNotifications(user, personalizedPlanUnlocked);
+        });
+      }
+    }, [user?.id, personalizedPlanUnlocked])
   );
 
   useEffect(() => {
@@ -152,11 +162,14 @@ export default function HomeScreen() {
         setTimeout(() => reject(new Error('Timeout')), ms)
       );
 
+      let localTodayLog = null;
+
       try {
         // Load today's pain log với timeout 2s
         const todayLogPromise = getTodayPainLog();
         const todayLog = await Promise.race([todayLogPromise, timeout(2000)]) as any;
-        setTodayPainLog(todayLog?.data || null);
+        localTodayLog = todayLog?.data || null;
+        setTodayPainLog(localTodayLog);
         console.log('Home: Today pain log loaded');
       } catch (err) {
         console.log('Home: Today pain log timeout/error, skipping');
@@ -182,7 +195,7 @@ export default function HomeScreen() {
         const behavior = await Promise.race([behaviorPromise, timeout(2000)]) as any;
         if (behavior?.data) {
           setStreakDays(behavior.data.streak_days || 0);
-          calculateHealthScore(todayPainLog, behavior.data);
+          calculateHealthScore(localTodayLog, behavior.data);
           console.log('Home: User behavior loaded');
         } else {
           // Set default values
@@ -736,6 +749,10 @@ export default function HomeScreen() {
           disabled={!personalizedPlanUnlocked}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push({
+              pathname: '/pain-input',
+              params: { redirectTo: '/recommendations' }
+            });
           }}
         >
           <LinearGradient
@@ -749,9 +766,16 @@ export default function HomeScreen() {
             ) : (
               <Lock size={24} color="#6B7280" strokeWidth={2.2} />
             )}
-            <Text style={personalizedPlanUnlocked ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
-              Cá nhân hoá lộ trình hôm nay
-            </Text>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Text style={personalizedPlanUnlocked ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
+                Cá nhân hoá lộ trình hôm nay
+              </Text>
+              {!personalizedPlanUnlocked && (
+                <Text style={{ fontSize: 11.5, color: '#6B7280', marginTop: 2, fontWeight: '500' }}>
+                  Mở khóa vào ngày 15 sau khi hoàn thành ngày 14
+                </Text>
+              )}
+            </View>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>

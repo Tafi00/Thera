@@ -12,6 +12,7 @@ import { getExerciseRecommendations } from '@/services/groq';
 import ExerciseCard from '@/components/ExerciseCard';
 import { colors } from '@/utils/theme';
 import type { Exercise } from '@/types';
+import { mapPainAreasToCategories } from '@/utils/categoryMapper';
 
 export default function RecommendationsScreen() {
   const router = useRouter();
@@ -37,41 +38,52 @@ export default function RecommendationsScreen() {
     try {
       setLoading(true);
 
+      const painAreaKeys = todayPainLog?.pain_areas ? Object.keys(todayPainLog.pain_areas) : [];
+      const mappedCategories = mapPainAreasToCategories(painAreaKeys);
+
       // Load all data needed for AI
       const [exercisesResult, behaviorResult, painLogsResult] = await Promise.all([
-        getExercises(),
+        getExercises(mappedCategories),
         getUserBehavior(user.id),
         getPainLogs(7),
       ]);
 
-      if (!exercisesResult.data || !behaviorResult.data || !painLogsResult.data) {
+      if (!exercisesResult || !behaviorResult || !painLogsResult) {
         console.error('Failed to load data');
         return;
       }
 
-      // Get AI recommendations
+      if (!todayPainLog) { setLoading(false); return; }      // Get AI recommendations
       const aiRecommendationsRaw = await getExerciseRecommendations({
-        pain_areas: Object.keys(todayPainLog.pain_areas || {}),
-        behavior: behaviorResult.data,
-        recent_logs: painLogsResult.data
+        pain_areas: todayPainLog?.pain_areas ? Object.keys(todayPainLog.pain_areas) : [],
+        behavior: ((behaviorResult as any).data || behaviorResult),
+        recent_logs: ((painLogsResult as any).data || painLogsResult),
+        available_exercises: ((exercisesResult as any).data || exercisesResult)
       });
       let aiRecommendations: any[] = [];
       try {
-        aiRecommendations = JSON.parse(aiRecommendationsRaw);
+        let cleanJson = aiRecommendationsRaw;
+        const match = aiRecommendationsRaw.match(/\[\s\S]*\]/);
+        if (match) {
+          cleanJson = match[0];
+        } else {
+          cleanJson = aiRecommendationsRaw.replace(/```json/gi, "").replace(/```/g, "").trim();
+        }
+        aiRecommendations = JSON.parse(cleanJson);
       } catch (e) {
         console.warn('Could not parse AI recommendations, using empty array', e);
       }
 
       // Map recommendations to exercises
       const recommendedExercises = aiRecommendations
-        .map((rec: any) => exercisesResult.data!.find((ex: any) => ex.id === rec.exercise_id))
+        .map((rec: any) => ((exercisesResult as any).data || exercisesResult)!.find((ex: any) => ex.id === rec.exercise_id))
         .filter(Boolean) as Exercise[];
 
       setRecommendations(recommendedExercises);
       setRecommendedExercises(recommendedExercises);
 
       // Generate insights
-      const avgPainLevel = painLogsResult.data.reduce((sum: number, log: any) => sum + log.pain_level, 0) / painLogsResult.data.length;
+      const avgPainLevel = ((painLogsResult as any).data || painLogsResult).reduce((sum: number, log: any) => sum + log.pain_level, 0) / ((painLogsResult as any).data || painLogsResult).length;
       const trend = todayPainLog.pain_level < avgPainLevel ? 'giảm' : 'tăng';
       setInsights(`Mức đau của bạn đã ${trend} so với tuần trước. Tiếp tục duy trì!`);
     } catch (error) {

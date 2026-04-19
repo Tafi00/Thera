@@ -33,6 +33,7 @@ app.use('/api/water', require('./routes/water'));
 app.use('/api/motivations', require('./routes/motivations'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/videos', require('./routes/videos'));
+app.use('/api/library', require('./routes/library'));
 app.use('/api', require('./routes/misc'));
 
 // Health check

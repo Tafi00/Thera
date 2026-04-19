@@ -30,6 +30,15 @@ interface Exercise {
   thumbnail_url?: string;
 }
 
+const RECOVERY_PLAN_DAYS = 14;
+
+function getNextLocalDayStart(date = new Date()) {
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  nextDay.setHours(0, 0, 0, 0);
+  return nextDay;
+}
+
 export default function WorkoutSequenceScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -92,19 +101,17 @@ export default function WorkoutSequenceScreen() {
     }
   };
 
-  const maybeStartPersonalizedPlanCountdown = async () => {
+  const maybeMarkRecoveryPlanStarted = async () => {
     if (!user || isStartingCountdown) return;
-    if (user.personalized_plan_started_at && user.personalized_plan_unlock_at) return;
+    if (user.personalized_plan_started_at) return;
     if ((params.day as string) !== '1') return;
 
     try {
       setIsStartingCountdown(true);
       const startedAt = new Date();
-      const unlockAt = new Date(startedAt.getTime() + 15 * 24 * 60 * 60 * 1000);
 
       const updatedUser = await api.put('/auth/profile', {
         personalized_plan_started_at: startedAt.toISOString(),
-        personalized_plan_unlock_at: unlockAt.toISOString(),
       });
 
       if (updatedUser) {
@@ -114,6 +121,29 @@ export default function WorkoutSequenceScreen() {
       console.warn('Start personalized plan countdown error:', error);
     } finally {
       setIsStartingCountdown(false);
+    }
+  };
+
+  const maybeUnlockPersonalizedPlanAfterDay14 = async () => {
+    if (!user || !params.day) return;
+
+    const dayNumber = parseInt(params.day as string, 10);
+    if (dayNumber !== RECOVERY_PLAN_DAYS) return;
+    if (user.personalized_plan_completed_at && user.personalized_plan_unlock_at) return;
+
+    try {
+      const completedAt = new Date();
+      const unlockAt = getNextLocalDayStart(completedAt);
+      const updatedUser = await api.put('/auth/profile', {
+        personalized_plan_completed_at: completedAt.toISOString(),
+        personalized_plan_unlock_at: unlockAt.toISOString(),
+      });
+
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.warn('Unlock personalized plan after day 14 error:', error);
     }
   };
 
@@ -136,6 +166,7 @@ export default function WorkoutSequenceScreen() {
           })
         );
         await Promise.all(promises);
+        await maybeUnlockPersonalizedPlanAfterDay14();
       } catch (error) {
         console.error('Save workout log error:', error);
       }
@@ -315,7 +346,7 @@ export default function WorkoutSequenceScreen() {
                 setIsPlaying(false);
               } else if (state === 'playing') {
                 setIsPlaying(true);
-                maybeStartPersonalizedPlanCountdown();
+                maybeMarkRecoveryPlanStarted();
               } else if (state === 'paused') {
                 setIsPlaying(false);
               }
@@ -340,7 +371,7 @@ export default function WorkoutSequenceScreen() {
               }
 
               if (status.isPlaying) {
-                maybeStartPersonalizedPlanCountdown();
+                maybeMarkRecoveryPlanStarted();
               }
 
               if (pendingSeekTime === null) {

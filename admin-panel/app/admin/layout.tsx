@@ -23,6 +23,7 @@ import {
 	Menu,
 	X,
 	QrCode,
+	Library,
 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -34,6 +35,7 @@ const menuItems = [
 	{ icon: Smartphone, label: "Thiết bị", href: "/admin/devices" },
 	{ icon: Brain, label: "AI Prompts", href: "/admin/ai-prompts" },
 	{ icon: BookOpen, label: "Knowledge Base", href: "/admin/knowledge" },
+	{ icon: Library, label: "Thư viện", href: "/admin/library" },
 	{ icon: Accessibility, label: "Tư thế", href: "/admin/postures" },
 	{ icon: MessageSquare, label: "Motivation", href: "/admin/motivations" },
 	{ icon: Film, label: "Videos", href: "/admin/videos" },

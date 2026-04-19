@@ -44,14 +44,14 @@ export default function ExerciseDetailScreen() {
 
     try {
       setLoading(true);
-      const { data, error } = await getExerciseById(params.id as string);
+      const exerciseData = await getExerciseById(params.id as string);
       
-      if (error || !data) {
-        console.error('Load exercise error:', error);
+      if (!exerciseData) {
+        console.error('Load exercise error: Exercise not found');
         return;
       }
 
-      setExercise(data);
+      setExercise(exerciseData);
     } catch (error) {
       console.error('Load exercise error:', error);
     } finally {
@@ -79,14 +79,14 @@ export default function ExerciseDetailScreen() {
         workoutData.day_number = parseInt(params.dayNumber as string);
       }
 
-      const { data, error } = await logWorkout(workoutData);
+      const logData = await logWorkout(workoutData);
 
-      if (error || !data) {
-        console.error('Log workout error:', error);
+      if (!logData) {
+        console.error('Log workout error: No data returned');
         return;
       }
 
-      setWorkoutLogId(data.id);
+      setWorkoutLogId(logData.id || logData._id);
       setPlaying(true);
     } catch (error) {
       console.error('Start workout error:', error);

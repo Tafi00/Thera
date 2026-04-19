@@ -130,6 +130,7 @@ router.post('/google', async (req, res) => {
         surgery_history: user.surgery_history,
         preferred_time: user.preferred_time,
         personalized_plan_started_at: user.personalized_plan_started_at,
+        personalized_plan_completed_at: user.personalized_plan_completed_at,
         personalized_plan_unlock_at: user.personalized_plan_unlock_at,
         onboarding_completed: user.onboarding_completed,
         owned_devices: user.owned_devices,
@@ -161,7 +162,8 @@ router.put('/profile', protect, async (req, res) => {
       'target_weight', 'primary_goal', 'focus_area', 'limitations',
       'diet_type', 'pain_areas', 'symptoms', 'surgery_history',
       'preferred_time', 'avatar_url', 'owned_devices', 'onboarding_completed',
-      'personalized_plan_started_at', 'personalized_plan_unlock_at'
+      'personalized_plan_started_at', 'personalized_plan_completed_at',
+      'personalized_plan_unlock_at'
     ];
 
     const updates = {};

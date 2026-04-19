@@ -35,7 +35,7 @@ export default function DailyRecommendationsScreen() {
 
       // Check if already generated today
       const today = new Date().toISOString().split('T')[0];
-      const data = await api.get(`/misc/daily-recommendations?date=${today}`);
+      const data = await api.get(`/daily-recommendations?date=${today}`);
 
       if (data && data.length > 0) {
         setNutritionAdvice(data[0].nutrition_advice);
@@ -51,7 +51,7 @@ export default function DailyRecommendationsScreen() {
       setSportAdvice(recommendations.sport);
 
       // Save to database
-      await api.post('/misc/daily-recommendations', {
+      await api.post('/daily-recommendations', {
         date: today,
         nutrition_advice: recommendations.nutrition,
         sport_advice: recommendations.sport,
@@ -69,18 +69,33 @@ export default function DailyRecommendationsScreen() {
 
   const scheduleNotification = async () => {
     try {
+      // Request permissions
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Vui lòng cấp quyền thông báo để nhận nhắc nhở!');
+        return;
+      }
+
       // Schedule notification for tomorrow 9:00 AM
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(9, 0, 0, 0);
+      
+      const safeNutrition = (nutritionAdvice || 'Ăn uống lành mạnh').split('.')[0];
+      const safeSport = (sportAdvice || 'Tập thể dục đều đặn').split('.')[0];
+
+      // Calculate seconds from now until tomorrow exactly at 9:00 AM
+      const secondsUntilTomorrow = Math.max(1, Math.floor((tomorrow.getTime() - Date.now()) / 1000));
 
       await Notifications.scheduleNotificationAsync({
         content: {
           title: '💡 Gợi ý cho hôm nay',
-          body: `Nhớ ${nutritionAdvice.split('.')[0]} và ${sportAdvice.split('.')[0]} nhé!`,
+          body: `Nhớ ${safeNutrition} và ${safeSport} nhé!`,
           data: { type: 'daily_reminder' },
         },
-        trigger: tomorrow as any,
+        trigger: {
+          seconds: secondsUntilTomorrow,
+        } as any,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -159,7 +174,7 @@ export default function DailyRecommendationsScreen() {
           </View>
         </Animated.View>
 
-        {/* Notification Card */}
+        {/* Notification Card 
         <Animated.View entering={FadeInDown.delay(300)}>
           <View style={styles.notificationCard}>
             <Bell size={24} color={colors.warning} />
@@ -181,6 +196,7 @@ export default function DailyRecommendationsScreen() {
             )}
           </View>
         </Animated.View>
+        */}
 
         {/* CTA Button */}
         <Animated.View entering={FadeInDown.delay(400)}>

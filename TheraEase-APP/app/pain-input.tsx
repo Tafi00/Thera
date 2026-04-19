@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Button } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { usePainStore } from '@/stores/painStore';
 import { createPainLog } from '@/services/painLogs';
@@ -13,9 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { getPainAreaLabel } from '@/utils/constants';
 
-
 export default function PainInputScreen() {
   const router = useRouter();
+  const { redirectTo } = useLocalSearchParams();
   const { user } = useAuthStore();
   const { selectedPainAreas, setSelectedPainAreas, setTodayPainLog } = usePainStore();
   const [loading, setLoading] = useState(false);
@@ -54,13 +54,17 @@ export default function PainInputScreen() {
       const primaryArea = primaryAreaEntry?.[0];
       const primaryAreaLabel = primaryArea ? getPainAreaLabel(primaryArea) : 'Cổ';
 
-      router.push({
-        pathname: '/pain-analysis',
-        params: {
-          painArea: primaryArea,
-          painAreaLabel: primaryAreaLabel,
-        },
-      });
+      if (redirectTo) {
+        router.replace(redirectTo as any);
+      } else {
+        router.push({
+          pathname: '/pain-analysis',
+          params: {
+            painArea: primaryArea,
+            painAreaLabel: primaryAreaLabel,
+          },
+        });
+      }
     } catch (error: any) {
       console.error('Submit error:', error);
       alert('Có lỗi xảy ra: ' + error.message);
