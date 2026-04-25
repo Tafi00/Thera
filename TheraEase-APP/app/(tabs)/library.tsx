@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Modal, StatusBar } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { api } from '@/services/api';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import VideoPlayer from '@/components/VideoPlayer';
 
 interface LibraryItem {
   _id: string;
@@ -34,6 +35,7 @@ export default function LibraryScreen() {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<{ url: string; title: string } | null>(null);
 
   const loadItems = async () => {
     try {
@@ -58,18 +60,13 @@ export default function LibraryScreen() {
     loadItems();
   }, []);
 
-  const handlePressLink = async (url: string) => {
+  const handleWatchVideo = (item: LibraryItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        console.warn(`Cannot open URL: ${url}`);
-      }
-    } catch (error) {
-      console.error('Error opening URL:', error);
-    }
+    setActiveVideo({ url: item.link, title: item.title || item.category });
+  };
+
+  const handleCloseVideo = () => {
+    setActiveVideo(null);
   };
 
   // Group items by category
@@ -128,7 +125,7 @@ export default function LibraryScreen() {
                 <TouchableOpacity
                   key={item._id}
                   activeOpacity={0.8}
-                  onPress={() => handlePressLink(item.link)}
+                  onPress={() => handleWatchVideo(item)}
                   style={[
                     styles.card,
                     { 
@@ -171,6 +168,26 @@ export default function LibraryScreen() {
           );
         })}
       </ScrollView>
+
+      {/* In-app Video Player Modal */}
+      <Modal
+        visible={!!activeVideo}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={handleCloseVideo}
+        statusBarTranslucent
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+      >
+        <StatusBar hidden />
+        {activeVideo && (
+          <VideoPlayer
+            videoUrl={activeVideo.url}
+            title={activeVideo.title}
+            isLibraryMode={true}
+            onClose={handleCloseVideo}
+          />
+        )}
+      </Modal>
     </View>
   );
 }

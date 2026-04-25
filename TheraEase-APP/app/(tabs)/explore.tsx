@@ -41,7 +41,11 @@ const findProduct = (products: Product[], targetKey: "ech" | "rung") =>
 const resolveProductImage = (
 	product: Product | null,
 	fallback: ImageSourcePropType,
+	preferFallback = false,
 ): ImageSourcePropType => {
+	if (preferFallback) {
+		return fallback;
+	}
 	const imageUrl = product?.image_url?.trim();
 	return imageUrl ? { uri: imageUrl } : fallback;
 };
@@ -64,8 +68,14 @@ export default function ExploreScreen() {
 	);
 	const neckProduct = useMemo(() => findProduct(products, "ech"), [products]);
 	const backProduct = useMemo(() => findProduct(products, "rung"), [products]);
-	const neckImage = useMemo(() => resolveProductImage(neckProduct, NECK_IMAGE), [neckProduct]);
-	const backImage = useMemo(() => resolveProductImage(backProduct, BACK_IMAGE), [backProduct]);
+	const neckImage = useMemo(
+		() => resolveProductImage(neckProduct, NECK_IMAGE, true),
+		[neckProduct],
+	);
+	const backImage = useMemo(
+		() => resolveProductImage(backProduct, BACK_IMAGE, true),
+		[backProduct],
+	);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -306,17 +316,19 @@ const createStyles = (colors: any, isDark: boolean, topInset: number) =>
 			shadowRadius: 18,
 			elevation: 3,
 		},
-		imageWrap: {
-			height: 240,
-			backgroundColor: "transparent",
-			justifyContent: "center",
-			alignItems: "center",
-			padding: 20,
-		},
-		productImage: {
-			width: "100%",
-			height: "100%",
-		},
+			imageWrap: {
+				height: 240,
+				backgroundColor: isDark ? "#1C2432" : "#F8FAFC",
+				borderBottomWidth: 1,
+				borderBottomColor: isDark ? "rgba(148, 163, 184, 0.12)" : "rgba(148, 163, 184, 0.16)",
+				justifyContent: "center",
+				alignItems: "center",
+				padding: 20,
+			},
+			productImage: {
+				width: "100%",
+				height: "100%",
+			},
 		productBody: {
 			paddingHorizontal: 20,
 			paddingVertical: 18,

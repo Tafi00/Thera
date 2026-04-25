@@ -129,6 +129,7 @@ router.post('/google', async (req, res) => {
         symptoms: user.symptoms,
         surgery_history: user.surgery_history,
         preferred_time: user.preferred_time,
+        notifications_enabled: user.notifications_enabled,
         personalized_plan_started_at: user.personalized_plan_started_at,
         personalized_plan_completed_at: user.personalized_plan_completed_at,
         personalized_plan_unlock_at: user.personalized_plan_unlock_at,
@@ -161,7 +162,7 @@ router.put('/profile', protect, async (req, res) => {
       'full_name', 'age', 'occupation', 'gender', 'height', 'weight',
       'target_weight', 'primary_goal', 'focus_area', 'limitations',
       'diet_type', 'pain_areas', 'symptoms', 'surgery_history',
-      'preferred_time', 'avatar_url', 'owned_devices', 'onboarding_completed',
+      'avatar_url', 'owned_devices', 'onboarding_completed', 'notifications_enabled',
       'personalized_plan_started_at', 'personalized_plan_completed_at',
       'personalized_plan_unlock_at'
     ];
@@ -172,6 +173,11 @@ router.put('/profile', protect, async (req, res) => {
         updates[field] = req.body[field];
       }
     });
+
+    // Users may choose their preferred reminder window during onboarding only.
+    if (req.body.preferred_time !== undefined && req.user?.onboarding_completed !== true) {
+      updates.preferred_time = req.body.preferred_time;
+    }
     updates.updated_at = new Date();
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
@@ -193,6 +199,7 @@ router.post('/profile/sync', protect, async (req, res) => {
     delete updates.role;
     delete updates.password;
     delete updates.is_pro;
+    delete updates.preferred_time;
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
       new: true,

@@ -7,7 +7,24 @@ const DeviceUsageLog = require('../models/DeviceUsageLog');
 const HealthTip = require('../models/HealthTip');
 const NutritionTip = require('../models/NutritionTip');
 const NotificationToken = require('../models/NotificationToken');
+const NotificationDispatchLog = require('../models/NotificationDispatchLog');
 const { protect } = require('../middleware/auth');
+const { sendPreviewNotificationsToUser } = require('../services/notificationDispatcher');
+
+function serializeNotification(notificationDoc) {
+  if (!notificationDoc) return null;
+  const notification = notificationDoc.toObject ? notificationDoc.toObject() : notificationDoc;
+  return {
+    id: String(notification._id || notification.id),
+    key: notification.key,
+    title: notification.title,
+    body: notification.body,
+    sent_at: notification.sent_at || null,
+    created_at: notification.created_at,
+    is_read: notification.is_read === true,
+    read_at: notification.read_at || null,
+  };
+}
 
 // === Workout Feedback ===
 router.post('/workout-feedback', protect, async (req, res) => {
@@ -163,6 +180,94 @@ router.post('/notification-token', protect, async (req, res) => {
     res.json(token);
   } catch (error) {
     res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// === Notification Inbox ===
+router.get('/notifications', protect, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 100);
+    const notifications = await NotificationDispatchLog.find({
+      user_id: req.user._id,
+      status: 'sent',
+    })
+      .sort({ sent_at: -1, created_at: -1 })
+      .limit(limit)
+      .select('key title body sent_at created_at is_read read_at');
+
+    const unread_count = await NotificationDispatchLog.countDocuments({
+      user_id: req.user._id,
+      status: 'sent',
+      is_read: { $ne: true },
+    });
+
+    res.json({
+      unread_count,
+      items: notifications.map(serializeNotification),
+    });
+  } catch (error) {
+    console.error('Get notifications inbox error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+router.put('/notifications/:id/read', protect, async (req, res) => {
+  try {
+    const notification = await NotificationDispatchLog.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user_id: req.user._id,
+        status: 'sent',
+      },
+      {
+        is_read: true,
+        read_at: new Date(),
+        updated_at: new Date(),
+      },
+      { new: true }
+    ).select('key title body sent_at created_at is_read read_at');
+
+    if (!notification) {
+      return res.status(404).json({ error: 'Không tìm thấy thông báo' });
+    }
+
+    res.json(serializeNotification(notification));
+  } catch (error) {
+    console.error('Mark notification as read error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+router.put('/notifications/read-all', protect, async (req, res) => {
+  try {
+    await NotificationDispatchLog.updateMany(
+      {
+        user_id: req.user._id,
+        status: 'sent',
+        is_read: { $ne: true },
+      },
+      {
+        is_read: true,
+        read_at: new Date(),
+        updated_at: new Date(),
+      }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Mark all notifications as read error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+router.post('/notifications/preview', protect, async (req, res) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) ? req.body.keys : undefined;
+    const result = await sendPreviewNotificationsToUser(req.user._id, keys);
+    res.json(result);
+  } catch (error) {
+    console.error('Preview notifications error:', error);
+    res.status(400).json({ error: error.message || 'Không thể preview thông báo' });
   }
 });
 

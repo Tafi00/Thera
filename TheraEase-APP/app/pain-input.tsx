@@ -55,7 +55,14 @@ export default function PainInputScreen() {
       const primaryAreaLabel = primaryArea ? getPainAreaLabel(primaryArea) : 'Cổ';
 
       if (redirectTo) {
-        router.replace(redirectTo as any);
+        router.replace({
+          pathname: '/pain-analysis',
+          params: {
+            painArea: primaryArea,
+            painAreaLabel: primaryAreaLabel,
+            redirectTo: redirectTo as string,
+          },
+        });
       } else {
         router.push({
           pathname: '/pain-analysis',

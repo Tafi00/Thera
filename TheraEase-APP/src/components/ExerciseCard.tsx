@@ -9,28 +9,16 @@ interface ExerciseCardProps {
   exercise: Exercise;
   onPress: () => void;
   recommended?: boolean;
+  currentPainVideoLabel?: string;
 }
 
-export default function ExerciseCard({ exercise, onPress, recommended }: ExerciseCardProps) {
+export default function ExerciseCard({
+  exercise,
+  onPress,
+  recommended,
+  currentPainVideoLabel,
+}: ExerciseCardProps) {
   const [imageError, setImageError] = React.useState(false);
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return colors.success;
-      case 'medium': return colors.painMild;
-      case 'hard': return colors.error;
-      default: return colors.textSecondary;
-    }
-  };
-
-  const getDifficultyText = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'Dễ';
-      case 'medium': return 'Trung bình';
-      case 'hard': return 'Khó';
-      default: return difficulty;
-    }
-  };
 
   const hasValidThumbnail = exercise.thumbnail_url && exercise.thumbnail_url.trim() !== '' && !imageError;
 
@@ -55,19 +43,17 @@ export default function ExerciseCard({ exercise, onPress, recommended }: Exercis
             <Text style={styles.title} numberOfLines={2}>
               {exercise.title}
             </Text>
-            
-            <View style={styles.meta}>
-              <View style={[styles.badge, { backgroundColor: getDifficultyColor(exercise.difficulty) + '20' }]}>
-                <Text style={[styles.badgeText, { color: getDifficultyColor(exercise.difficulty) }]}>
-                  {getDifficultyText(exercise.difficulty)}
-                </Text>
-              </View>
-            </View>
 
             {recommended && (
               <View style={styles.recommendedBadge}>
                 <TrendingUp size={14} color={colors.primary} />
                 <Text style={styles.recommendedText}>Phù hợp với bạn</Text>
+              </View>
+            )}
+
+            {currentPainVideoLabel && (
+              <View style={styles.videoLevelBadge}>
+                <Text style={styles.videoLevelText}>Video theo mức: {currentPainVideoLabel}</Text>
               </View>
             )}
           </View>
@@ -110,29 +96,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   recommendedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -141,6 +104,19 @@ const styles = StyleSheet.create({
   },
   recommendedText: {
     fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  videoLevelBadge: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: colors.primary + '14',
+  },
+  videoLevelText: {
+    fontSize: 11,
     color: colors.primary,
     fontWeight: '600',
   },

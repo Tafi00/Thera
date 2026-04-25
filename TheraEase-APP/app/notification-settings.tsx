@@ -1,80 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft } from 'lucide-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useAuthStore } from '@/stores/authStore';
-import { scheduleDailyReminder } from '@/services/notifications';
-import { api } from '@/services/api';
+import { ArrowLeft, Bell, ShieldCheck } from 'lucide-react-native';
 import { colors } from '@/utils/theme';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  
-  // Parse current time or default to 20:00
-  const currentTime = user?.preferred_time || '20:00';
-  const [hours, minutes] = currentTime.split(':').map(Number);
-  const initialDate = new Date();
-  initialDate.setHours(hours, minutes, 0, 0);
-  
-  const [selectedTime, setSelectedTime] = useState(initialDate);
-  const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
-
-  const handleTimeChange = (event: any, date?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowPicker(false);
-    }
-    
-    if (date) {
-      setSelectedTime(date);
-    }
-  };
-
-  const formatTime = (date: Date) => {
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
-  };
-
-  const handleSave = async () => {
-    if (!user) return;
-
-    const timeString = formatTime(selectedTime);
-    setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    try {
-      const data = await api.put('/auth/profile', {
-        preferred_time: timeString,
-      });
-
-      if (data) {
-        setUser(data);
-        
-        // Schedule notifications with new time
-        const [h, m] = timeString.split(':').map(Number);
-        await scheduleDailyReminder(h, m);
-        
-        Alert.alert('Thành công', `Đã đặt nhắc nhở lúc ${timeString}`, [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
-      }
-    } catch (error: any) {
-      console.error('Update notification time error:', error);
-      console.error('Error details:', error.message, error.stack);
-      Alert.alert('Lỗi', `Không thể cập nhật thời gian: ${error.message || 'Vui lòng thử lại'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -88,80 +22,44 @@ export default function NotificationSettingsScreen() {
         >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thời gian nhắc nhở</Text>
+        <Text style={styles.headerTitle}>Lịch thông báo</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.description}>
-          Chọn thời gian bạn muốn nhận nhắc nhở cải thiện hàng ngày
+          Khung giờ gửi thông báo được cấu hình tập trung để nội dung nhắc nhở đồng bộ cho toàn bộ người dùng.
         </Text>
 
-        <View style={styles.timeContainer}>
-          <Text style={styles.timeLabel}>Thời gian đã chọn:</Text>
-          <Text style={styles.timeValue}>{formatTime(selectedTime)}</Text>
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Bell size={22} color={colors.primary} />
+            <Text style={styles.infoTitle}>Giờ gửi do quản trị viên thiết lập</Text>
+          </View>
+          <Text style={styles.infoText}>
+            Bạn không thể tự thay đổi giờ nhắc trên ứng dụng. Khi cần cập nhật lịch gửi, đội ngũ quản trị sẽ điều chỉnh từ trang quản trị.
+          </Text>
         </View>
 
-        {Platform.OS === 'android' && !showPicker && (
-          <Button
-            mode="outlined"
-            onPress={() => setShowPicker(true)}
-            style={styles.showPickerButton}
-          >
-            Chọn giờ khác
-          </Button>
-        )}
-
-        {showPicker && (
-          <View style={styles.pickerContainer}>
-            <DateTimePicker
-              value={selectedTime}
-              mode="time"
-              is24Hour={true}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleTimeChange}
-              locale="vi-VN"
-            />
+        <View style={styles.noteCard}>
+          <View style={styles.infoHeader}>
+            <ShieldCheck size={22} color={colors.success} />
+            <Text style={styles.infoTitle}>Bạn vẫn kiểm soát việc nhận thông báo</Text>
           </View>
-        )}
-
-        <View style={styles.suggestions}>
-          <Text style={styles.suggestionsTitle}>Gợi ý:</Text>
-          {['07:00', '12:00', '18:00', '20:00', '21:00'].map((time) => (
-            <TouchableOpacity
-              key={time}
-              style={[
-                styles.suggestionChip,
-                formatTime(selectedTime) === time && styles.suggestionChipActive,
-              ]}
-              onPress={() => {
-                const [h, m] = time.split(':').map(Number);
-                const newDate = new Date();
-                newDate.setHours(h, m, 0, 0);
-                setSelectedTime(newDate);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-            >
-              <Text
-                style={[
-                  styles.suggestionText,
-                  formatTime(selectedTime) === time && styles.suggestionTextActive,
-                ]}
-              >
-                {time}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.infoText}>
+            Bạn vẫn có thể bật hoặc tắt thông báo bất cứ lúc nào trong phần Cài đặt của ứng dụng.
+          </Text>
         </View>
 
         <Button
           mode="contained"
-          onPress={handleSave}
-          loading={loading}
-          disabled={loading}
-          style={styles.saveButton}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+          style={styles.backAction}
         >
-          Lưu thay đổi
+          Quay lại cài đặt
         </Button>
       </ScrollView>
     </SafeAreaView>
@@ -207,66 +105,41 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     lineHeight: 24,
   },
-  timeContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
+  infoCard: {
+    marginBottom: 20,
     padding: 24,
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  timeLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  timeValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  showPickerButton: {
-    marginBottom: 24,
-  },
-  pickerContainer: {
-    alignItems: 'center',
+  noteCard: {
     marginBottom: 32,
-  },
-  suggestions: {
-    marginBottom: 32,
-  },
-  suggestionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  suggestionChip: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    padding: 24,
     backgroundColor: colors.surface,
-    marginBottom: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  suggestionChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  suggestionText: {
+  infoTitle: {
+    marginLeft: 10,
     fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
-    textAlign: 'center',
-    fontWeight: '500',
   },
-  suggestionTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+  infoText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
   },
-  saveButton: {
-    marginTop: 16,
-    paddingVertical: 8,
+  backAction: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingVertical: 6,
   },
 });

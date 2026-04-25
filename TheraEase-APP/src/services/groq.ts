@@ -66,6 +66,7 @@ async function callGroq(
 // Get AI exercise recommendations
 export async function getExerciseRecommendations(userContext: {
 	pain_areas?: string[];
+	pain_level?: number;
 	behavior?: any;
 	recent_logs?: any[];
 	available_exercises?: any[];
@@ -74,6 +75,7 @@ export async function getExerciseRecommendations(userContext: {
 	
 	const contextWithoutExercises = {
 		pain_areas: userContext.pain_areas,
+		pain_level: userContext.pain_level,
 		behavior: userContext.behavior,
 		recent_logs: userContext.recent_logs
 	};
@@ -81,7 +83,11 @@ export async function getExerciseRecommendations(userContext: {
 	const exercisesList = (userContext.available_exercises || []).map((ex: any) => ({
 		id: ex.id || ex._id,
 		title: ex.title,
-		category: ex.category
+		category: ex.category,
+		difficulty: ex.difficulty,
+		available_video_levels: Object.entries(ex.video_urls_by_pain || {})
+			.filter(([, url]) => typeof url === 'string' && url.trim() !== '')
+			.map(([level]) => level),
 	}));
 
 	const message = `Người dùng có các vấn đề: ${JSON.stringify(contextWithoutExercises)}.
@@ -89,7 +95,13 @@ export async function getExerciseRecommendations(userContext: {
 Dưới đây là danh sách các bài tập hiện có trên hệ thống: 
 ${JSON.stringify(exercisesList)}
 
-Từ danh sách bài tập trên, hãy chọn những bài tập phù hợp nhất (tối đa 5 bài) để hỗ trợ giảm đau và phục hồi. 
+Từ danh sách bài tập trên, hãy chọn những bài tập phù hợp nhất (tối đa 5 bài) để hỗ trợ giảm đau và phục hồi.
+Hãy phân tích mức đau hiện tại để ưu tiên độ khó phù hợp:
+- Không đau: có thể ưu tiên medium, sau đó easy hoặc hard
+- Đau nhẹ: ưu tiên easy, sau đó medium
+- Đau vừa: ưu tiên easy, hạn chế hard
+- Đau nặng/Tê: chỉ ưu tiên bài thật nhẹ, an toàn và tránh hard
+Chỉ chọn bài có video phù hợp với mức đau hiện tại nếu có.
 BẮT BUỘC TRẢ VỀ CHÍNH XÁC cấu trúc JSON mảng như sau (KHÔNG giải thích, KHÔNG chứa markdown):
 [
   { "exercise_id": "id_bài_tập_từ_danh_sách" }

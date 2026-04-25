@@ -18,7 +18,7 @@ const { width } = Dimensions.get('window');
 
 export default function PainAnalysisScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ painArea?: string; painAreaLabel?: string }>();
+  const params = useLocalSearchParams<{ painArea?: string; painAreaLabel?: string; redirectTo?: string }>();
   const { user } = useAuthStore();
   const { todayPainLog, setTodayPainLog, setPainHistory } = usePainStore();
   const [loading, setLoading] = useState(true);
@@ -119,13 +119,17 @@ export default function PainAnalysisScreen() {
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push({
-      pathname: '/workout-plans',
-      params: {
-        painArea: typeof params.painArea === 'string' ? params.painArea : '',
-        painAreaLabel: typeof params.painAreaLabel === 'string' ? params.painAreaLabel : '',
-      },
-    });
+    if (params.redirectTo) {
+      router.replace(params.redirectTo as any);
+    } else {
+      router.push({
+        pathname: '/workout-plans',
+        params: {
+          painArea: typeof params.painArea === 'string' ? params.painArea : '',
+          painAreaLabel: typeof params.painAreaLabel === 'string' ? params.painAreaLabel : '',
+        },
+      });
+    }
   };
 
   const chartData = useMemo(() => {
@@ -355,7 +359,9 @@ export default function PainAnalysisScreen() {
               style={styles.ctaButtonInner}
             >
               <Target size={24} color="#FFF" />
-              <Text style={styles.ctaButtonText}>Xem bài tập phù hợp</Text>
+              <Text style={styles.ctaButtonText}>
+                {params.redirectTo === '/recommendations' ? 'Xem lộ trình cá nhân' : 'Xem bài tập phù hợp'}
+              </Text>
             </TouchableOpacity>
           </LinearGradient>
         </Animated.View>

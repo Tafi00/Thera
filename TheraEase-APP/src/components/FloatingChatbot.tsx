@@ -172,41 +172,34 @@ export default function FloatingChatbot() {
 		}),
 	).current;
 
-	// Greeting bubble cycle
+	const hasShownGreetingRef = useRef(false);
+
+	// Greeting bubble - show only once per session
 	useEffect(() => {
 		if (!user) {
 			setShowGreetingBubble(false);
 			return;
 		}
 
-		if (visible) {
+		// Don't show if modal is visible, or if we've already shown it this session
+		if (visible || hasShownGreetingRef.current) {
 			setShowGreetingBubble(false);
 			return;
 		}
 
-		let cycleHideTimeout: ReturnType<typeof setTimeout> | null = null;
+		// Mark as shown so it doesn't appear again
+		hasShownGreetingRef.current = true;
+		
+		// Show bubble
+		setShowGreetingBubble(true);
 
-		const showBubble = () => {
-			setShowGreetingBubble(true);
-
-			if (cycleHideTimeout) {
-				clearTimeout(cycleHideTimeout);
-			}
-
-			cycleHideTimeout = setTimeout(() => {
-				setShowGreetingBubble(false);
-			}, 6000);
-		};
-
-		showBubble();
-
-		const interval = setInterval(showBubble, 20000);
+		// Hide after 6 seconds
+		const timeout = setTimeout(() => {
+			setShowGreetingBubble(false);
+		}, 6000);
 
 		return () => {
-			if (cycleHideTimeout) {
-				clearTimeout(cycleHideTimeout);
-			}
-			clearInterval(interval);
+			clearTimeout(timeout);
 		};
 	}, [user?.id, user?.gender, visible]);
 

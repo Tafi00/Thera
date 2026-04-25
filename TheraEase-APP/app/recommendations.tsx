@@ -1,104 +1,133 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { Text, Button, ActivityIndicator, Card } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { Sparkles, ArrowLeft } from 'lucide-react-native';
+import { Sparkles, ArrowLeft, PlayCircle } from 'lucide-react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { usePainStore } from '@/stores/painStore';
 import { useExerciseStore } from '@/stores/exerciseStore';
-import { getExercises, getUserBehavior } from '@/services/exercises';
 import { getPainLogs } from '@/services/painLogs';
-import { getExerciseRecommendations } from '@/services/groq';
-import ExerciseCard from '@/components/ExerciseCard';
+import {
+  getRandomizedPersonalizedPlanVideos,
+  type PersonalizedPlanDayVideo,
+} from '@/services/videos';
+import VideoPlayer from '@/components/VideoPlayer';
 import { colors } from '@/utils/theme';
-import type { Exercise } from '@/types';
-import { mapPainAreasToCategories } from '@/utils/categoryMapper';
+import { getPainVideoLevel, getPainVideoLevelLabel } from '@/utils/painRouting';
+
+const VIDEO_GROUP_LABELS: Record<string, string> = {
+  regular: 'Bài tập đơn',
+  device_supported: 'Bài tập sử dụng máy',
+};
 
 export default function RecommendationsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { todayPainLog, painHistory } = usePainStore();
+  const { todayPainLog } = usePainStore();
   const { setRecommendedExercises } = useExerciseStore();
   const [loading, setLoading] = useState(true);
-  const [recommendations, setRecommendations] = useState<Exercise[]>([]);
+  const [videos, setVideos] = useState<PersonalizedPlanDayVideo[]>([]);
   const [insights, setInsights] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadRecommendations();
   }, [user?.id, todayPainLog?.id]);
 
+  const activeVideo = activeIndex !== null ? videos[activeIndex] : null;
+
+  const regularVideosCount = useMemo(
+    () => videos.filter((item) => item.video_group === 'regular').length,
+    [videos],
+  );
+  const deviceVideosCount = useMemo(
+    () => videos.filter((item) => item.video_group === 'device_supported').length,
+    [videos],
+  );
+
   const loadRecommendations = async () => {
     if (!user || !todayPainLog) {
-      setRecommendations([]);
-      setInsights('Bạn chưa nhập mức đau hôm nay. Vui lòng cập nhật mức đau để nhận gợi ý AI.');
+      setVideos([]);
+      setErrorMessage('Bạn chưa nhập mức đau hôm nay. Vui lòng cập nhật mức đau để nhận lộ trình cá nhân hoá.');
+      setInsights('');
+      setRecommendedExercises([]);
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
+      setErrorMessage('');
 
-      const painAreaKeys = todayPainLog?.pain_areas ? Object.keys(todayPainLog.pain_areas) : [];
-      const mappedCategories = mapPainAreasToCategories(painAreaKeys);
-
-      // Load all data needed for AI
-      const [exercisesResult, behaviorResult, painLogsResult] = await Promise.all([
-        getExercises(mappedCategories),
-        getUserBehavior(user.id),
+      const [videoResult, painLogsResult] = await Promise.all([
+        getRandomizedPersonalizedPlanVideos({
+          regularCount: 6,
+          deviceCount: 1,
+        }),
         getPainLogs(7),
       ]);
 
-      if (!exercisesResult || !behaviorResult || !painLogsResult) {
-        console.error('Failed to load data');
+      if (videoResult.error || !videoResult.data) {
+        setVideos([]);
+        setRecommendedExercises([]);
+        setErrorMessage(videoResult.error || 'Không thể tạo lộ trình video cá nhân hoá.');
         return;
       }
 
-      if (!todayPainLog) { setLoading(false); return; }      // Get AI recommendations
-      const aiRecommendationsRaw = await getExerciseRecommendations({
-        pain_areas: todayPainLog?.pain_areas ? Object.keys(todayPainLog.pain_areas) : [],
-        behavior: ((behaviorResult as any).data || behaviorResult),
-        recent_logs: ((painLogsResult as any).data || painLogsResult),
-        available_exercises: ((exercisesResult as any).data || exercisesResult)
-      });
-      let aiRecommendations: any[] = [];
-      try {
-        let cleanJson = aiRecommendationsRaw;
-        const match = aiRecommendationsRaw.match(/\[\s\S]*\]/);
-        if (match) {
-          cleanJson = match[0];
-        } else {
-          cleanJson = aiRecommendationsRaw.replace(/```json/gi, "").replace(/```/g, "").trim();
-        }
-        aiRecommendations = JSON.parse(cleanJson);
-      } catch (e) {
-        console.warn('Could not parse AI recommendations, using empty array', e);
+      const videoItems = videoResult.data.items || [];
+      setVideos(videoItems);
+      setRecommendedExercises([]);
+
+      if (videoItems.length === 0) {
+        setInsights('');
+        setErrorMessage('Chưa có video nào trong hệ thống. Quản trị viên vui lòng thêm video để tạo lộ trình cá nhân hoá.');
+        return;
       }
 
-      // Map recommendations to exercises
-      const recommendedExercises = aiRecommendations
-        .map((rec: any) => ((exercisesResult as any).data || exercisesResult)!.find((ex: any) => ex.id === rec.exercise_id))
-        .filter(Boolean) as Exercise[];
-
-      setRecommendations(recommendedExercises);
-      setRecommendedExercises(recommendedExercises);
-
-      // Generate insights
-      const avgPainLevel = ((painLogsResult as any).data || painLogsResult).reduce((sum: number, log: any) => sum + log.pain_level, 0) / ((painLogsResult as any).data || painLogsResult).length;
-      const trend = todayPainLog.pain_level < avgPainLevel ? 'giảm' : 'tăng';
-      setInsights(`Mức đau của bạn đã ${trend} so với tuần trước. Tiếp tục duy trì!`);
+      const logs = ((painLogsResult as any).data || painLogsResult || []) as Array<{ pain_level?: number }>;
+      if (Array.isArray(logs) && logs.length > 0) {
+        const avgPainLevel = logs.reduce((sum, log) => sum + Number(log.pain_level || 0), 0) / logs.length;
+        const trend = todayPainLog.pain_level < avgPainLevel ? 'giảm' : 'tăng';
+        setInsights(`Đã random ${videoResult.data.regular_count} video bài tập thường và ${videoResult.data.device_count} video có sử dụng máy. Mức đau của bạn đang ${trend} so với tuần trước.`);
+      } else {
+        setInsights(`Đã random ${videoResult.data.regular_count} video bài tập thường và ${videoResult.data.device_count} video có sử dụng máy cho lộ trình hôm nay.`);
+      }
     } catch (error) {
-      console.error('Load recommendations error:', error);
+      console.error('Load personalized recommendations error:', error);
+      setVideos([]);
+      setRecommendedExercises([]);
+      setErrorMessage(error instanceof Error ? error.message : 'Không thể tải lộ trình video cá nhân hoá.');
     } finally {
       setLoading(false);
     }
   };
 
+  const openVideo = (index: number) => {
+    setActiveIndex(index);
+  };
+
+  const closeVideo = () => {
+    setActiveIndex(null);
+  };
+
+  const handleNextVideo = () => {
+    setActiveIndex((current) => {
+      if (current === null || current >= videos.length - 1) return current;
+      return current + 1;
+    });
+  };
+
+  const handlePreviousVideo = () => {
+    setActiveIndex((current) => {
+      if (current === null || current <= 0) return current;
+      return current - 1;
+    });
+  };
+
   const handleStartWorkout = () => {
-    if (recommendations.length > 0) {
-      router.push({
-        pathname: '/exercise-detail',
-        params: { id: recommendations[0].id },
-      });
+    if (videos.length > 0) {
+      openVideo(0);
     }
   };
 
@@ -107,15 +136,16 @@ export default function RecommendationsScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>
-          AI đang phân tích và gợi ý bài tập phù hợp...
+          Đang random lộ trình video cá nhân hoá cho bạn...
         </Text>
       </View>
     );
   }
 
+  const activePainVideoLabel = getPainVideoLevelLabel(getPainVideoLevel(todayPainLog?.pain_level));
+
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={styles.backButton}
@@ -123,52 +153,80 @@ export default function RecommendationsScreen() {
         >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gợi ý bài tập</Text>
+        <Text style={styles.headerTitle}>Lộ trình cá nhân hoá</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
         <View style={styles.header}>
           <Sparkles size={32} color={colors.primary} />
           <Text style={styles.title}>
-            Chúng tôi tìm thấy {recommendations.length} bài tập phù hợp
+            Chúng tôi đã chuẩn bị {videos.length} video cho hôm nay
           </Text>
-          {insights && (
+          <Text style={styles.activeLevelText}>
+            Mức đau hiện tại: {activePainVideoLabel}
+          </Text>
+          <Text style={styles.mixSummary}>
+            {regularVideosCount} bài tập thường • {deviceVideosCount} bài tập có sử dụng máy
+          </Text>
+          {insights ? (
             <Text style={styles.insights}>{insights}</Text>
-          )}
+          ) : null}
         </View>
 
-        {/* Recommendations */}
-        {recommendations.length === 0 ? (
+        {errorMessage ? (
+          <Card style={styles.emptyCard}>
+            <Card.Content>
+              <Text style={styles.emptyText}>{errorMessage}</Text>
+            </Card.Content>
+          </Card>
+        ) : videos.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Card.Content>
               <Text style={styles.emptyText}>
-                Không tìm thấy bài tập phù hợp. Vui lòng thử lại sau.
+                Chưa có đủ video để tạo lộ trình cá nhân hoá hôm nay.
               </Text>
             </Card.Content>
           </Card>
         ) : (
-          recommendations.map((exercise, index) => (
-            <View key={exercise.id} style={styles.exerciseContainer}>
+          videos.map((video, index) => (
+            <TouchableOpacity
+              key={video.id || (video as any)._id || `video-${index}`}
+              activeOpacity={0.85}
+              onPress={() => openVideo(index)}
+              style={styles.videoCardWrapper}
+            >
               <View style={styles.priorityBadge}>
                 <Text style={styles.priorityText}>#{index + 1}</Text>
               </View>
-              <ExerciseCard
-                exercise={exercise}
-                onPress={() => router.push({
-                  pathname: '/exercise-detail',
-                  params: { id: exercise.id },
-                })}
-                recommended
-              />
-            </View>
+              <Card style={styles.videoCard}>
+                <Card.Content style={styles.videoCardContent}>
+                  <View style={styles.videoMain}>
+                    <Text style={styles.videoTitle}>
+                      {video.title || `Video ${index + 1}`}
+                    </Text>
+                    <Text style={styles.videoDescription}>
+                      {video.description || 'Video được chọn ngẫu nhiên cho lộ trình cá nhân hoá của bạn.'}
+                    </Text>
+                    <View style={styles.badgesRow}>
+                      <View style={[styles.infoBadge, video.video_group === 'device_supported' ? styles.deviceBadge : styles.regularBadge]}>
+                        <Text style={[styles.infoBadgeText, video.video_group === 'device_supported' ? styles.deviceBadgeText : styles.regularBadgeText]}>
+                          {VIDEO_GROUP_LABELS[video.video_group || 'regular']}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.playIconWrap}>
+                    <PlayCircle size={34} color={colors.primary} />
+                  </View>
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
-      {/* Footer */}
-      {recommendations.length > 0 && (
+      {videos.length > 0 && !errorMessage ? (
         <View style={styles.footer}>
           <Button
             mode="contained"
@@ -176,7 +234,7 @@ export default function RecommendationsScreen() {
             style={styles.button}
             contentStyle={styles.buttonContent}
           >
-            Bắt đầu bài tập
+            Bắt đầu lộ trình video
           </Button>
           <Button
             mode="outlined"
@@ -186,7 +244,23 @@ export default function RecommendationsScreen() {
             Bỏ qua, đến gợi ý thiết bị
           </Button>
         </View>
-      )}
+      ) : null}
+
+      <Modal visible={activeVideo !== null} animationType="fade">
+        {activeVideo ? (
+          <VideoPlayer
+            videoUrl={activeVideo.link}
+            title={activeVideo.title || 'Video lộ trình cá nhân hoá'}
+            currentIndex={activeIndex ?? 0}
+            totalCount={videos.length}
+            isLibraryMode
+            onClose={closeVideo}
+            onNext={handleNextVideo}
+            onPrevious={handlePreviousVideo}
+            onComplete={closeVideo}
+          />
+        ) : null}
+      </Modal>
     </View>
   );
 }
@@ -245,53 +319,129 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 6,
+  },
+  activeLevelText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  mixSummary: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
   },
   insights: {
+    marginTop: 10,
     fontSize: 14,
     color: colors.primary,
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  exerciseContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  priorityBadge: {
-    position: 'absolute',
-    top: -8,
-    left: -8,
-    zIndex: 10,
-    backgroundColor: colors.primary,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  priorityText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+    lineHeight: 20,
   },
   emptyCard: {
     borderRadius: 16,
     backgroundColor: colors.surface,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 22,
+  },
+  videoCardWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  priorityBadge: {
+    position: 'absolute',
+    top: -8,
+    left: -4,
+    zIndex: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    minWidth: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  priorityText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  videoCard: {
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    elevation: 2,
+  },
+  videoCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  videoMain: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  videoTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  videoDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  infoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  regularBadge: {
+    backgroundColor: `${colors.success}20`,
+  },
+  deviceBadge: {
+    backgroundColor: `${colors.warning}20`,
+  },
+  infoBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  regularBadgeText: {
+    color: colors.success,
+  },
+  deviceBadgeText: {
+    color: colors.warning,
+  },
+  playIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${colors.primary}12`,
   },
   footer: {
     padding: 16,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    gap: 12,
   },
   button: {
     borderRadius: 12,
+    marginBottom: 10,
   },
   buttonContent: {
     paddingVertical: 8,

@@ -12,6 +12,8 @@ import {
   Heart, 
   Activity, 
   Clock,
+  Sun,
+  Moon,
   Bone,
   UserSquare2,
   Users,
@@ -48,6 +50,43 @@ const tips = [
   { icon: 'trending-up', text: 'Theo dõi tiến độ giúp bạn duy trì động lực' },
   { icon: 'target', text: 'Đặt mục tiêu nhỏ và đạt được từng bước một' },
 ];
+
+const PREFERRED_TIME_OPTIONS = [
+  {
+    id: 'morning',
+    label: 'Buổi sáng',
+    description: 'Nhận nhắc nhở vào đầu ngày',
+    value: '08:00',
+    icon: Sun,
+    colors: ['#F59E0B', '#D97706'] as const,
+  },
+  {
+    id: 'evening',
+    label: 'Buổi tối',
+    description: 'Phù hợp cho lịch tập cuối ngày',
+    value: '20:00',
+    icon: Moon,
+    colors: ['#5B9BD5', '#4A7FB8'] as const,
+  },
+  {
+    id: 'both',
+    label: 'Cả 2',
+    description: 'Bài tập hằng ngày sẽ thiên về sáng, các nhắc quay lại sẽ thiên về tối',
+    value: '08:00,20:00',
+    icon: Sparkles,
+    colors: ['#10B981', '#059669'] as const,
+  },
+];
+
+function getPreferredTimeChoice(value?: string | null): 'morning' | 'evening' | 'both' {
+  if (value === '08:00') return 'morning';
+  if (value === '08:00,20:00') return 'both';
+  return 'evening';
+}
+
+function getPreferredTimeValue(choice: 'morning' | 'evening' | 'both') {
+  return PREFERRED_TIME_OPTIONS.find((option) => option.id === choice)?.value || '20:00';
+}
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -100,10 +139,9 @@ export default function OnboardingScreen() {
   const [painArea, setPainArea] = useState<'neck' | 'back' | 'both' | null>(null);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [surgeryHistory, setSurgeryHistory] = useState('');
-  const [preferredHour, setPreferredHour] = useState(20);
-  const [preferredMinute, setPreferredMinute] = useState(0);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
+  const [preferredTimeChoice, setPreferredTimeChoice] = useState<'morning' | 'evening' | 'both'>(
+    getPreferredTimeChoice(user?.preferred_time),
+  );
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setSnackbarMessage(message);
     setSnackbarType(type);
@@ -154,11 +192,7 @@ export default function OnboardingScreen() {
     try {
       setLoading(true);
       console.log('Onboarding: Starting profile creation...');
-      
-      const formatTime = () => {
-        return `${preferredHour.toString().padStart(2, '0')}:${preferredMinute.toString().padStart(2, '0')}`;
-      };
-      
+
       const profileData = {
         full_name: fullName,
         age: parseInt(age),
@@ -174,7 +208,7 @@ export default function OnboardingScreen() {
         pain_areas: painArea === 'both' ? ['neck', 'back'] : painArea ? [painArea] : [],
         symptoms,
         surgery_history: surgeryHistory,
-        preferred_time: formatTime(),
+        preferred_time: getPreferredTimeValue(preferredTimeChoice),
         onboarding_completed: true,
         is_pro: false,
       };
@@ -193,6 +227,7 @@ export default function OnboardingScreen() {
         avatar_url: user?.avatar_url || '',
         role: user?.role || 'user',
         owned_devices: user?.owned_devices || [],
+        notifications_enabled: user?.notifications_enabled ?? true,
         ...profileData,
         created_at: new Date().toISOString(),
       };
@@ -575,12 +610,7 @@ export default function OnboardingScreen() {
   );
 
   const renderStep5 = () => {
-    const formatTime = () => {
-      return `${preferredHour.toString().padStart(2, '0')}:${preferredMinute.toString().padStart(2, '0')}`;
-    };
-
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    const selectedOption = PREFERRED_TIME_OPTIONS.find((option) => option.id === preferredTimeChoice);
 
     return (
       <Animated.View 
@@ -595,29 +625,59 @@ export default function OnboardingScreen() {
         
         <Animated.View entering={FadeInDown.delay(200)}>
           <Text style={styles.subtitle}>
-            Chọn giờ bạn muốn nhận nhắc nhở trị liệu
+            Hãy chọn khung giờ ban đầu phù hợp nhất với bạn. Sau này người dùng chỉ được bật hoặc tắt thông báo, còn quản trị viên sẽ là người chỉnh giờ nếu cần.
           </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(300)}>
-          <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowTimePicker(true);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.timePickerButton}>
-              <Clock size={24} color={colors.primary} />
-              <Text style={styles.timePickerText}>{formatTime()}</Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
+        <View style={styles.optionsContainer}>
+          {PREFERRED_TIME_OPTIONS.map((option, index) => {
+            const Icon = option.icon;
+            const isSelected = preferredTimeChoice === option.id;
+
+            return (
+              <Animated.View key={option.id} entering={FadeInDown.delay(300 + index * 80)}>
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setPreferredTimeChoice(option.id as 'morning' | 'evening' | 'both');
+                  }}
+                >
+                  <LinearGradient
+                    colors={isSelected ? [...option.colors] : ['#FFFFFF', '#F8FAFC']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.optionCard, isSelected && styles.optionCardSelected]}
+                  >
+                    <Icon
+                      size={width * 0.14}
+                      color={isSelected ? '#FFFFFF' : option.colors[0]}
+                      strokeWidth={2}
+                    />
+                    <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                      {option.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.optionDescription,
+                        isSelected && styles.optionDescriptionSelected,
+                      ]}
+                    >
+                      {option.description}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </View>
 
         <Animated.View entering={FadeInDown.delay(400)} style={styles.hintBox}>
           <Clock size={18} color={colors.primary} />
           <Text style={styles.hint}>
-            Gợi ý: 20-22h tối để hiệu quả tốt nhất
+            {selectedOption?.id === 'both'
+              ? 'Với lựa chọn "Cả 2", giờ mặc định của bài tập hằng ngày sẽ nghiêng về buổi sáng, còn các nhắc quay lại sau 3/5/7 ngày sẽ nghiêng về buổi tối.'
+              : `Lựa chọn của bạn sẽ đặt giờ mặc định ban đầu cho các message của riêng tài khoản này là ${selectedOption?.label.toLowerCase()}.`}
           </Text>
         </Animated.View>
 
@@ -632,96 +692,12 @@ export default function OnboardingScreen() {
               handleSubmit();
             }}
             loading={loading}
-            disabled={loading}
+            disabled={loading || !preferredTimeChoice}
             style={styles.halfButton}
           >
             Hoàn thành
           </Button>
         </Animated.View>
-
-        {/* Time Picker Modal */}
-        <Modal
-          visible={showTimePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowTimePicker(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.timePickerModal}>
-              <Text style={styles.modalTitle}>Chọn giờ tập</Text>
-              
-              <View style={styles.timePickerContainer}>
-                <ScrollView style={styles.timeColumn} showsVerticalScrollIndicator={false}>
-                  {hours.map((hour) => (
-                    <TouchableOpacity
-                      key={hour}
-                      onPress={() => {
-                        setPreferredHour(hour);
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      style={[
-                        styles.timeItem,
-                        preferredHour === hour && styles.timeItemSelected
-                      ]}
-                    >
-                      <Text style={[
-                        styles.timeItemText,
-                        preferredHour === hour && styles.timeItemTextSelected
-                      ]}>
-                        {hour.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <Text style={styles.timeSeparator}>:</Text>
-
-                <ScrollView style={styles.timeColumn} showsVerticalScrollIndicator={false}>
-                  {minutes.map((minute) => (
-                    <TouchableOpacity
-                      key={minute}
-                      onPress={() => {
-                        setPreferredMinute(minute);
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      style={[
-                        styles.timeItem,
-                        preferredMinute === minute && styles.timeItemSelected
-                      ]}
-                    >
-                      <Text style={[
-                        styles.timeItemText,
-                        preferredMinute === minute && styles.timeItemTextSelected
-                      ]}>
-                        {minute.toString().padStart(2, '0')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              <View style={styles.modalButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => setShowTimePicker(false)}
-                  style={styles.modalButton}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={() => {
-                    setShowTimePicker(false);
-                    showToast(`Đã chọn giờ ${formatTime()}`, 'success');
-                  }}
-                  style={styles.modalButton}
-                >
-                  Xác nhận
-                </Button>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </Animated.View>
     );
   };
@@ -990,6 +966,16 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     color: '#FFFFFF',
+  },
+  optionDescription: {
+    marginTop: 10,
+    fontSize: width * 0.034,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: colors.textSecondary,
+  },
+  optionDescriptionSelected: {
+    color: 'rgba(255,255,255,0.92)',
   },
   symptomsContainer: {
     maxHeight: 400,

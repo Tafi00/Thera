@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Linking, useWindowDimensions } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { Play, Pause, SkipBack, SkipForward, X, RotateCcw, RotateCw } from 'lucide-react-native';
@@ -7,13 +7,12 @@ import { colors } from '@/utils/theme';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { extractYouTubeVideoId, isYouTubeUrl } from '@/utils/youtube';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 interface VideoPlayerProps {
   videoUrl: string;
   title: string;
   currentIndex?: number;
   totalCount?: number;
+  isLibraryMode?: boolean;
   onComplete?: () => void;
   onClose?: () => void;
   onNext?: () => void;
@@ -25,6 +24,7 @@ export default function VideoPlayer({
   title,
   currentIndex,
   totalCount,
+  isLibraryMode = false,
   onComplete,
   onClose,
   onNext,
@@ -35,12 +35,16 @@ export default function VideoPlayer({
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
+
   // YouTube specific state
   const isYouTube = isYouTubeUrl(videoUrl);
   const youtubeVideoId = isYouTube ? extractYouTubeVideoId(videoUrl) : null;
   const [youtubeReady, setYoutubeReady] = useState(false);
+  const [embedError, setEmbedError] = useState(false);
+  const [autoOpenedExternal, setAutoOpenedExternal] = useState(false);
   const youtubePlayerRef = useRef<any>(null);
+
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -49,12 +53,11 @@ export default function VideoPlayer({
   };
 
   const handlePlayPause = async () => {
-    if (isYouTube && youtubePlayerRef.current && youtubeReady) {
+    if (isYouTube && youtubePlayerRef.current && youtubeReady && !embedError) {
       // YouTube player control - use ref methods
       try {
         const playerState = await youtubePlayerRef.current.getPlayerState();
-        console.log('Current player state:', playerState);
-        
+
         if (isPlaying) {
           await youtubePlayerRef.current.pauseVideo();
         } else {
@@ -76,7 +79,7 @@ export default function VideoPlayer({
   };
 
   const handleSkip = async (seconds: number) => {
-    if (isYouTube && youtubePlayerRef.current && youtubeReady) {
+    if (isYouTube && youtubePlayerRef.current && youtubeReady && !embedError) {
       // YouTube player seek
       try {
         const currentTime = await youtubePlayerRef.current.getCurrentTime();
@@ -114,7 +117,7 @@ export default function VideoPlayer({
 
   // Calculate countdown (remaining time)
   const remainingTime = Math.ceil((duration - position) / 1000);
-  
+
   const formatCountdown = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -128,7 +131,7 @@ export default function VideoPlayer({
         setIsFullscreen(false);
       } else {
         const currentOrientation = await ScreenOrientation.getOrientationAsync();
-        if (currentOrientation === ScreenOrientation.Orientation.PORTRAIT_UP || 
+        if (currentOrientation === ScreenOrientation.Orientation.PORTRAIT_UP ||
             currentOrientation === ScreenOrientation.Orientation.PORTRAIT_DOWN) {
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT);
         } else {
@@ -138,14 +141,55 @@ export default function VideoPlayer({
       }
     } catch (error) {
       console.log('Orientation lock not supported on this device');
-      // Fallback: just toggle the state for UI feedback
       setIsFullscreen(!isFullscreen);
+    }
+  };
+
+  const handleFullScreenChange = async (isFullScreen: boolean) => {
+    if (isLibraryMode) return;
+
+    setIsFullscreen(isFullScreen);
+    try {
+      if (isFullScreen) {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      }
+    } catch (error) {
+      console.log('Orientation lock error:', error);
     }
   };
 
   // YouTube player handlers
   const onYouTubeReady = () => {
     setYoutubeReady(true);
+  };
+
+  const openVideoExternally = async () => {
+    const externalUrl = youtubeVideoId
+      ? `https://www.youtube.com/watch?v=${youtubeVideoId}`
+      : videoUrl;
+
+    try {
+      const supported = await Linking.canOpenURL(externalUrl);
+      if (!supported) {
+        return false;
+      }
+
+      await Linking.openURL(externalUrl);
+      onClose?.();
+      return true;
+    } catch (error) {
+      console.warn('Open external video error:', error);
+      return false;
+    }
+  };
+
+  const onYouTubeError = (error: string) => {
+    console.log('YouTube error:', error);
+    if (error === '150' || error === '101' || error === 'UNPLAYABLE') {
+      setEmbedError(true);
+    }
   };
 
   const onYouTubeStateChange = (state: string) => {
@@ -163,13 +207,13 @@ export default function VideoPlayer({
 
   // Update position and duration for YouTube
   useEffect(() => {
-    if (!isYouTube || !youtubeReady || !youtubePlayerRef.current) return;
+    if (!isYouTube || !youtubeReady || !youtubePlayerRef.current || embedError) return;
 
     const interval = setInterval(async () => {
       try {
         const currentTime = await youtubePlayerRef.current.getCurrentTime();
         const videoDuration = await youtubePlayerRef.current.getDuration();
-        
+
         setPosition(currentTime * 1000);
         setDuration(videoDuration * 1000);
       } catch (error) {
@@ -178,35 +222,73 @@ export default function VideoPlayer({
     }, 500);
 
     return () => clearInterval(interval);
-  }, [isYouTube, youtubeReady]);
+  }, [isYouTube, youtubeReady, embedError]);
 
-  // Reset orientation when component unmounts
   useEffect(() => {
+    setEmbedError(false);
+    setYoutubeReady(false);
+    setAutoOpenedExternal(false);
+  }, [videoUrl]);
+
+  useEffect(() => {
+    if (!embedError || !isLibraryMode || autoOpenedExternal) {
+      return;
+    }
+
+    setAutoOpenedExternal(true);
+    void openVideoExternally();
+  }, [autoOpenedExternal, embedError, isLibraryMode]);
+
+  // Reset orientation when component unmounts and auto-lock if library mode
+  useEffect(() => {
+    if (isLibraryMode) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+      setIsFullscreen(true);
+    }
+
     return () => {
       ScreenOrientation.unlockAsync().catch(() => {});
     };
-  }, []);
+  }, [isLibraryMode]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, (isFullscreen || isLibraryMode) && { backgroundColor: '#000000' }]}>
       <View style={styles.videoContainer}>
         {/* Video - YouTube or Regular */}
         {isYouTube && youtubeVideoId ? (
           <View style={styles.youtubeWrapper}>
-            <YoutubePlayer
-              ref={youtubePlayerRef}
-              height={SCREEN_WIDTH * 9 / 16}
-              width={SCREEN_WIDTH}
-              videoId={youtubeVideoId}
-              play={true}
-              onReady={onYouTubeReady}
-              onChangeState={onYouTubeStateChange}
-              initialPlayerParams={{
-                controls: true,
-                modestbranding: true,
-                rel: false,
-              }}
-            />
+            {embedError ? (
+              <View style={styles.embedErrorContainer}>
+                <Text style={styles.embedErrorText}>
+                  Video này không cho phát trực tiếp trong app. Mở trên YouTube để tiếp tục xem nhé.
+                </Text>
+                <TouchableOpacity
+                  style={styles.openYoutubeButton}
+                  onPress={() => {
+                    void openVideoExternally();
+                  }}
+                >
+                  <Text style={styles.openYoutubeText}>Xem trên YouTube</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <YoutubePlayer
+                ref={youtubePlayerRef}
+                height={isFullscreen ? windowHeight : windowWidth * 9 / 16}
+                width={windowWidth}
+                videoId={youtubeVideoId}
+                play={true}
+                onReady={onYouTubeReady}
+                onChangeState={onYouTubeStateChange}
+                onError={onYouTubeError}
+                onFullScreenChange={handleFullScreenChange}
+                initialPlayerParams={{
+                  controls: true,
+                  modestbranding: true,
+                  rel: false,
+                }}
+              />
+            )}
           </View>
         ) : (
           <Video
@@ -221,78 +303,82 @@ export default function VideoPlayer({
         )}
 
         {/* Top Bar: Title + Close */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, (isFullscreen || isLibraryMode) && styles.topBarFullscreen]}>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, (isFullscreen || isLibraryMode) && { color: '#FFFFFF' }]}>{title}</Text>
             {currentIndex !== undefined && totalCount !== undefined && (
-              <Text style={styles.exerciseProgress}>
+              <Text style={[styles.exerciseProgress, (isFullscreen || isLibraryMode) && { color: '#rgba(255,255,255,0.8)' }]}>
                 Bài tập {currentIndex + 1}/{totalCount}
               </Text>
             )}
           </View>
           {onClose && (
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <X size={24} color={colors.text} />
+              <X size={24} color={(isFullscreen || isLibraryMode) ? '#FFFFFF' : colors.text} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* COUNTDOWN TIMER - Ở trên video, không đè */}
-        <View style={styles.timerSection}>
-          <Text style={styles.countdownText}>{formatCountdown(remainingTime)}</Text>
-        </View>
+        {!isLibraryMode && (
+          <>
+            {/* COUNTDOWN TIMER - Ở trên video, không đè */}
+            <View style={styles.timerSection}>
+              <Text style={styles.countdownText}>{formatCountdown(remainingTime)}</Text>
+            </View>
 
-        {/* Bottom Controls - Luôn hiện */}
-        <View style={styles.bottomSection}>
-          {/* Progress Bar */}
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${(position / duration) * 100}%` }
-              ]} 
-            />
-          </View>
+            {/* Bottom Controls - Luôn hiện */}
+            <View style={styles.bottomSection}>
+              {/* Progress Bar */}
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: duration > 0 ? `${(position / duration) * 100}%` : '0%' }
+                  ]}
+                />
+              </View>
 
-          {/* Control Buttons */}
-          <View style={styles.controlsRow}>
-            {/* Previous Exercise */}
-            {onPrevious && currentIndex !== undefined && currentIndex > 0 && (
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={onPrevious}
-              >
-                <SkipBack size={24} color={colors.primary} />
-              </TouchableOpacity>
-            )}
+              {/* Control Buttons */}
+              <View style={styles.controlsRow}>
+                {/* Previous Exercise */}
+                {onPrevious && currentIndex !== undefined && currentIndex > 0 && (
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={onPrevious}
+                  >
+                    <SkipBack size={24} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
 
-            {/* Rewind 15s */}
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={() => handleSkip(-15)}
-            >
-              <RotateCcw size={24} color={colors.primary} />
-            </TouchableOpacity>
+                {/* Rewind 15s */}
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={() => handleSkip(-15)}
+                >
+                  <RotateCcw size={24} color={colors.primary} />
+                </TouchableOpacity>
 
-            {/* Forward 15s */}
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={() => handleSkip(15)}
-            >
-              <RotateCw size={24} color={colors.primary} />
-            </TouchableOpacity>
+                {/* Forward 15s */}
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={() => handleSkip(15)}
+                >
+                  <RotateCw size={24} color={colors.primary} />
+                </TouchableOpacity>
 
-            {/* Next Exercise */}
-            {onNext && currentIndex !== undefined && totalCount !== undefined && currentIndex < totalCount - 1 && (
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={onNext}
-              >
-                <SkipForward size={24} color={colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+                {/* Next Exercise */}
+                {onNext && currentIndex !== undefined && totalCount !== undefined && currentIndex < totalCount - 1 && (
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={onNext}
+                  >
+                    <SkipForward size={24} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -305,6 +391,7 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   video: {
     flex: 1,
@@ -314,7 +401,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#000000', // Đổi nền video sang đen để dễ xem
+  },
+  embedErrorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  embedErrorText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  openYoutubeButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  openYoutubeText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 
   // Top Bar: Title + Close
@@ -332,6 +443,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  topBarFullscreen: {
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
+    paddingTop: 40,
   },
   titleContainer: {
     flex: 1,

@@ -21,11 +21,20 @@ import { colors } from '@/utils/theme';
 import * as Haptics from 'expo-haptics';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { extractYouTubeVideoId, isYouTubeUrl } from '@/utils/youtube';
+import { usePainStore } from '@/stores/painStore';
+import { resolveExerciseVideoUrl } from '@/utils/painRouting';
 
 interface Exercise {
   id: string;
   title: string;
   video_url: string;
+  video_urls_by_pain?: {
+    no_pain?: string;
+    mild?: string;
+    moderate?: string;
+    severe?: string;
+  };
+  target_areas?: string[];
   duration: number;
   thumbnail_url?: string;
 }
@@ -43,6 +52,7 @@ export default function WorkoutSequenceScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user, setUser } = useAuthStore();
+  const { todayPainLog } = usePainStore();
   const { width, height } = useWindowDimensions();
   const youtubePlayerRef = useRef<YoutubeIframeRef | null>(null);
   const videoRef = useRef<Video | null>(null);
@@ -125,11 +135,11 @@ export default function WorkoutSequenceScreen() {
   };
 
   const maybeUnlockPersonalizedPlanAfterDay14 = async () => {
-    if (!user || !params.day) return;
+    if (!user || !params.day) return user;
 
     const dayNumber = parseInt(params.day as string, 10);
-    if (dayNumber !== RECOVERY_PLAN_DAYS) return;
-    if (user.personalized_plan_completed_at && user.personalized_plan_unlock_at) return;
+    if (dayNumber !== RECOVERY_PLAN_DAYS) return user;
+    if (user.personalized_plan_completed_at && user.personalized_plan_unlock_at) return user;
 
     try {
       const completedAt = new Date();
@@ -141,10 +151,13 @@ export default function WorkoutSequenceScreen() {
 
       if (updatedUser) {
         setUser(updatedUser);
+        return updatedUser;
       }
     } catch (error) {
       console.warn('Unlock personalized plan after day 14 error:', error);
     }
+
+    return user;
   };
 
 
@@ -166,7 +179,18 @@ export default function WorkoutSequenceScreen() {
           })
         );
         await Promise.all(promises);
-        await maybeUnlockPersonalizedPlanAfterDay14();
+        const notificationUser = await maybeUnlockPersonalizedPlanAfterDay14();
+
+        // Reschedule notifications — reset inactivity timers since user just worked out
+        try {
+          const { rescheduleSmartNotifications } = await import('@/services/notifications');
+          await rescheduleSmartNotifications(
+            notificationUser,
+            !!notificationUser?.personalized_plan_unlock_at,
+          );
+        } catch (e) {
+          console.warn('Reschedule notifications after workout error:', e);
+        }
       } catch (error) {
         console.error('Save workout log error:', error);
       }
@@ -182,7 +206,8 @@ export default function WorkoutSequenceScreen() {
   };
 
   const currentExercise = exercises[0] ?? null;
-  const currentVideoUrl = dayVideoUrl || currentExercise?.video_url || '';
+  const currentVideoUrl =
+    dayVideoUrl || (currentExercise ? resolveExerciseVideoUrl(currentExercise, todayPainLog) : '');
   const isYoutubeVideo = currentVideoUrl ? isYouTubeUrl(currentVideoUrl) : false;
   const youtubeVideoId =
     isYoutubeVideo && currentVideoUrl ? extractYouTubeVideoId(currentVideoUrl) : null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
@@ -19,7 +19,6 @@ export default function EditExercisePage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    video_url: '',
     thumbnail_url: '',
     calories: 50,
     difficulty: 'easy',
@@ -29,20 +28,21 @@ export default function EditExercisePage() {
     instructions: '',
     benefits: '',
     is_pro: false,
+    video_urls_by_pain: {
+      no_pain: '',
+      mild: '',
+      moderate: '',
+      severe: '',
+    },
   });
 
-  useEffect(() => {
-    loadExercise();
-  }, [params.id]);
-
-  const loadExercise = async () => {
+  const loadExercise = useCallback(async () => {
     try {
       const data = await api.get(`/exercises/${params.id}`);
 
       setFormData({
         title: data.title || '',
         description: data.description || '',
-        video_url: data.video_url || '',
         thumbnail_url: data.thumbnail_url || '',
         calories: data.calories || 50,
         difficulty: data.difficulty || 'easy',
@@ -52,6 +52,12 @@ export default function EditExercisePage() {
         instructions: Array.isArray(data.instructions) ? data.instructions.join('\n') : '',
         benefits: Array.isArray(data.benefits) ? data.benefits.join('\n') : '',
         is_pro: data.is_pro || false,
+        video_urls_by_pain: {
+          no_pain: data.video_urls_by_pain?.no_pain || data.video_url || '',
+          mild: data.video_urls_by_pain?.mild || data.video_url || '',
+          moderate: data.video_urls_by_pain?.moderate || data.video_url || '',
+          severe: data.video_urls_by_pain?.severe || data.video_url || '',
+        },
       });
     } catch (error) {
       console.error('Load exercise error:', error);
@@ -59,7 +65,11 @@ export default function EditExercisePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
+
+  useEffect(() => {
+    loadExercise();
+  }, [loadExercise]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,10 +88,23 @@ export default function EditExercisePage() {
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
         : [];
 
+      const painVideos = formData.video_urls_by_pain;
+      const hasMissingPainVideo = Object.values(painVideos).some((url) => !url.trim());
+
+      if (hasMissingPainVideo) {
+        showError('Vui lòng nhập đủ 4 link video theo mức đau');
+        setSaving(false);
+        return;
+      }
+
+      const fallbackVideoUrl =
+        painVideos.mild || painVideos.moderate || painVideos.severe || painVideos.no_pain;
+
       await api.put(`/exercises/${params.id}`, {
         title: formData.title,
         description: formData.description,
-        video_url: formData.video_url,
+        video_url: fallbackVideoUrl,
+        video_urls_by_pain: painVideos,
         thumbnail_url: formData.thumbnail_url,
         calories: formData.calories,
         difficulty: formData.difficulty,
@@ -163,14 +186,73 @@ export default function EditExercisePage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Video URL *</label>
-              <input
-                type="url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                className="input"
-                required
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-3">Link video theo mức đau *</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Không đau</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.no_pain}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        no_pain: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau nhẹ (ấm ấm)</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.mild}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        mild: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau vừa (khó chịu)</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.moderate}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        moderate: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau nặng/Tê</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.severe}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        severe: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="md:col-span-2">
@@ -188,20 +270,6 @@ export default function EditExercisePage() {
                 onChange={(e) => setFormData({ ...formData, calories: parseInt(e.target.value) })}
                 className="input"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Độ khó *</label>
-              <select
-                value={formData.difficulty}
-                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                className="input"
-                required
-              >
-                <option value="easy">Dễ</option>
-                <option value="medium">Trung bình</option>
-                <option value="hard">Khó</option>
-              </select>
             </div>
 
             <div>

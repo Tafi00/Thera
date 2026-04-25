@@ -3,9 +3,22 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
+const notificationTemplatesRoute = require('./routes/notificationTemplates');
+const { startNotificationDispatcher } = require('./services/notificationDispatcher');
 
-// Connect to MongoDB
-connectDB();
+const { seedNotificationTemplates } = notificationTemplatesRoute;
+
+// Connect to MongoDB and seed startup defaults
+const startup = (async () => {
+  await connectDB();
+
+  try {
+    await seedNotificationTemplates();
+    console.log('Notification templates ensured at startup');
+  } catch (error) {
+    console.error('Notification template startup seed error:', error.message);
+  }
+})();
 
 const app = express();
 app.set('etag', false);
@@ -33,7 +46,9 @@ app.use('/api/water', require('./routes/water'));
 app.use('/api/motivations', require('./routes/motivations'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/videos', require('./routes/videos'));
+app.use('/api/personalized-plan-videos', require('./routes/personalizedPlanVideos'));
 app.use('/api/library', require('./routes/library'));
+app.use('/api/notification-templates', notificationTemplatesRoute);
 app.use('/api', require('./routes/misc'));
 
 // Health check
@@ -49,8 +64,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-  app.listen(PORT, () => {
-    console.log(`TheraHome Backend running on port ${PORT}`);
+  startup.then(() => {
+    startNotificationDispatcher();
+    app.listen(PORT, () => {
+      console.log(`TheraHome Backend running on port ${PORT}`);
+    });
   });
 }
 

@@ -24,6 +24,7 @@ import {
 	X,
 	QrCode,
 	Library,
+	Bell,
 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -38,7 +39,9 @@ const menuItems = [
 	{ icon: Library, label: "Thư viện", href: "/admin/library" },
 	{ icon: Accessibility, label: "Tư thế", href: "/admin/postures" },
 	{ icon: MessageSquare, label: "Motivation", href: "/admin/motivations" },
+	{ icon: Bell, label: "Thông báo", href: "/admin/notifications" },
 	{ icon: Film, label: "Videos", href: "/admin/videos" },
+	{ icon: Film, label: "Videos Cá Nhân", href: "/admin/personalized-videos" },
 	// { icon: Key, label: 'Activation Codes', href: '/admin/codes' },
 	{ icon: QrCode, label: "Mã Sản Phẩm", href: "/admin/product-instances" },
 	{ icon: Package, label: "Sản Phẩm", href: "/admin/products" },

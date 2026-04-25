@@ -7,9 +7,10 @@ import { ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
-import { signOut } from '@/services/auth';
-import { rescheduleSmartNotifications, cancelAllNotifications, triggerTestNotification } from '@/services/notifications';
+import { signOut, updateProfile } from '@/services/auth';
+import { rescheduleSmartNotifications, cancelAllNotifications, triggerTestNotification, registerForPushNotifications, triggerLocalTemplatePreviewNotifications } from '@/services/notifications';
 import { useTheme } from '@/contexts/ThemeContext';
+import { previewSystemNotifications } from '@/services/notificationInbox';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -17,30 +18,47 @@ export default function SettingsScreen() {
   const { colors, themeMode, setThemeMode } = useTheme();
   const styles = createStyles(colors);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [localPreviewLoading, setLocalPreviewLoading] = useState(false);
 
   // Derive unlocked state similarly to home.tsx (or assume true if bypassed)
   const personalizedPlanUnlocked = true;
 
   useFocusEffect(
     React.useCallback(() => {
+      if (typeof user?.notifications_enabled === 'boolean') {
+        setNotificationsEnabled(user.notifications_enabled);
+        void AsyncStorage.setItem('notificationsEnabled', String(user.notifications_enabled));
+        return;
+      }
+
       AsyncStorage.getItem('notificationsEnabled').then((val: string | null) => {
-        if (val !== null) setNotificationsEnabled(val === 'true');
+        if (val !== null) {
+          setNotificationsEnabled(val === 'true');
+          return;
+        }
       });
-    }, [])
+    }, [user?.notifications_enabled])
   );
 
   const handleNotificationToggle = async (value: boolean) => {
     setNotificationsEnabled(value);
     await AsyncStorage.setItem('notificationsEnabled', String(value));
-    if (value && user?.preferred_time) {
-      await rescheduleSmartNotifications(user, personalizedPlanUnlocked);
+
+    let currentUser = user;
+
+    if (user) {
+      const updatedUser = await updateProfile({ notifications_enabled: value });
+      useAuthStore.getState().setUser(updatedUser);
+      currentUser = updatedUser;
+    }
+
+    if (value && currentUser) {
+      await registerForPushNotifications();
+      await rescheduleSmartNotifications(currentUser, personalizedPlanUnlocked);
     } else {
       await cancelAllNotifications();
     }
-  };
-
-  const handleChangeTime = () => {
-    router.push('/notification-settings');
   };
 
   const handleLogout = () => {
@@ -64,6 +82,49 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handlePreviewMessages = async () => {
+    try {
+      setPreviewLoading(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await registerForPushNotifications();
+      const result = await previewSystemNotifications();
+
+      Alert.alert(
+        'Đã gửi thông báo test',
+        result.sentCount > 0
+          ? `Đã bypass điều kiện và gửi thử ${result.sentCount} message cho tài khoản này. Bạn có thể xem ngay trên điện thoại và trong mục chuông.`
+          : 'Hiện chưa có message active nào để gửi thử.'
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Không thể gửi thử',
+        error?.message || 'Hãy kiểm tra quyền thông báo và đảm bảo app đã có push token hợp lệ.',
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleLocalPreviewMessages = async () => {
+    try {
+      setLocalPreviewLoading(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const result = await triggerLocalTemplatePreviewNotifications();
+
+      Alert.alert(
+        'Đã lên lịch demo local',
+        `Sẽ hiện lần lượt ${result.count} message trên máy này, bắt đầu sau khoảng 2 giây. Cách này không cần push token nên test được ngay trong Expo Go.`,
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Không thể demo local',
+        error?.message || 'Không thể tạo demo local cho các message hiện tại.',
+      );
+    } finally {
+      setLocalPreviewLoading(false);
+    }
   };
 
   return (
@@ -123,16 +184,33 @@ export default function SettingsScreen() {
         {notificationsEnabled && (
           <>
             <List.Item
-              title="Thời gian nhắc nhở"
-              description={user?.preferred_time?.substring(0, 5) || '20:00'}
+              title="Lịch gửi thông báo"
+              description="Do quản trị viên thiết lập"
               left={props => <List.Icon {...props} icon="clock" />}
-              onPress={handleChangeTime}
             />
             <List.Item
               title="Thử nghiệm Thông báo"
               description="Bấm để test (sẽ báo sau 3 giây)"
               left={props => <List.Icon {...props} icon="flask" />}
               onPress={() => triggerTestNotification()}
+            />
+            <List.Item
+              title="Demo local các message"
+              description={localPreviewLoading ? 'Đang tạo demo local...' : 'Hiện lần lượt từng message ngay trên máy này, không cần push token'}
+              left={props => <List.Icon {...props} icon="bell-ring-outline" />}
+              onPress={() => {
+                void handleLocalPreviewMessages();
+              }}
+              disabled={localPreviewLoading}
+            />
+            <List.Item
+              title="Xem thử message hệ thống"
+              description={previewLoading ? 'Đang gửi thử toàn bộ message...' : 'Bypass điều kiện để gửi ngay các message hiện có'}
+              left={props => <List.Icon {...props} icon="bell-badge" />}
+              onPress={() => {
+                void handlePreviewMessages();
+              }}
+              disabled={previewLoading}
             />
           </>
         )}
