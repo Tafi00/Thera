@@ -212,7 +212,7 @@ export default function ExerciseTimeScreen() {
 						})}
 					</View>
 
-					{selectedId && (
+					{/* {selectedId && (
 						<MotiView
 							from={{ opacity: 0, translateY: 20 }}
 							animate={{ opacity: 1, translateY: 0 }}
@@ -227,7 +227,7 @@ export default function ExerciseTimeScreen() {
 								</View>
 							</View>
 						</MotiView>
-					)}
+					)} */}
 
 						<MotiView
 							from={{ opacity: 0, translateY: 20 }}

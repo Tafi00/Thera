@@ -25,7 +25,7 @@ async function seedData() {
   const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
   if (!adminExists) {
     await User.create({
-      email: process.env.ADMIN_EMAIL || 'admin@therahome.vn',
+      email: process.env.ADMIN_EMAIL || 'admin@theraease.vn',
       full_name: 'Admin TheraHome',
       role: 'admin',
       password: process.env.ADMIN_PASSWORD || 'admin123',

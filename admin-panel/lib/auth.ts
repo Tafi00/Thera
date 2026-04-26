@@ -1,5 +1,5 @@
 export function checkAuth(email: string, password: string): boolean {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@therahome.vn';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@theraease.vn';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   
   return email === adminEmail && password === adminPassword;
