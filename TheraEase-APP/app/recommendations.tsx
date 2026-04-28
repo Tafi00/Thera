@@ -27,7 +27,7 @@ export default function RecommendationsScreen() {
   const { setRecommendedExercises } = useExerciseStore();
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<PersonalizedPlanDayVideo[]>([]);
-  const [insights, setInsights] = useState('');
+
   const [errorMessage, setErrorMessage] = useState('');
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -50,7 +50,7 @@ export default function RecommendationsScreen() {
     if (!user || !todayPainLog) {
       setVideos([]);
       setErrorMessage('Bạn chưa nhập mức đau hôm nay. Vui lòng cập nhật mức đau để nhận lộ trình cá nhân hoá.');
-      setInsights('');
+
       setRecommendedExercises([]);
       setLoading(false);
       return;
@@ -80,19 +80,12 @@ export default function RecommendationsScreen() {
       setRecommendedExercises([]);
 
       if (videoItems.length === 0) {
-        setInsights('');
+
         setErrorMessage('Chưa có video nào trong hệ thống. Quản trị viên vui lòng thêm video để tạo lộ trình cá nhân hoá.');
         return;
       }
 
-      const logs = ((painLogsResult as any).data || painLogsResult || []) as Array<{ pain_level?: number }>;
-      if (Array.isArray(logs) && logs.length > 0) {
-        const avgPainLevel = logs.reduce((sum, log) => sum + Number(log.pain_level || 0), 0) / logs.length;
-        const trend = todayPainLog.pain_level < avgPainLevel ? 'giảm' : 'tăng';
-        setInsights(`Đã random ${videoResult.data.regular_count} video bài tập thường và ${videoResult.data.device_count} video có sử dụng máy. Mức đau của bạn đang ${trend} so với tuần trước.`);
-      } else {
-        setInsights(`Đã random ${videoResult.data.regular_count} video bài tập thường và ${videoResult.data.device_count} video có sử dụng máy cho lộ trình hôm nay.`);
-      }
+
     } catch (error) {
       console.error('Load personalized recommendations error:', error);
       setVideos([]);
@@ -167,11 +160,9 @@ export default function RecommendationsScreen() {
             Mức đau hiện tại: {activePainVideoLabel}
           </Text>
           <Text style={styles.mixSummary}>
-            {regularVideosCount} bài tập thường • {deviceVideosCount} bài tập có sử dụng máy
+            đã thiết lập {regularVideosCount} bài tập đơn và {deviceVideosCount} bài tập có sử dụng máy
           </Text>
-          {insights ? (
-            <Text style={styles.insights}>{insights}</Text>
-          ) : null}
+
         </View>
 
         {errorMessage ? (
@@ -246,7 +237,11 @@ export default function RecommendationsScreen() {
         </View>
       ) : null}
 
-      <Modal visible={activeVideo !== null} animationType="fade">
+      <Modal
+        visible={activeVideo !== null}
+        animationType="slide"
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+      >
         {activeVideo ? (
           <VideoPlayer
             videoUrl={activeVideo.link}
@@ -333,14 +328,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
   },
-  insights: {
-    marginTop: 10,
-    fontSize: 14,
-    color: colors.primary,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
+
   emptyCard: {
     borderRadius: 16,
     backgroundColor: colors.surface,

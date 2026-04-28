@@ -124,40 +124,13 @@ export default function VideoPlayer({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const toggleFullscreen = async () => {
-    try {
-      if (isFullscreen) {
-        await ScreenOrientation.unlockAsync();
-        setIsFullscreen(false);
-      } else {
-        const currentOrientation = await ScreenOrientation.getOrientationAsync();
-        if (currentOrientation === ScreenOrientation.Orientation.PORTRAIT_UP ||
-            currentOrientation === ScreenOrientation.Orientation.PORTRAIT_DOWN) {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE_RIGHT);
-        } else {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        }
-        setIsFullscreen(true);
-      }
-    } catch (error) {
-      console.log('Orientation lock not supported on this device');
-      setIsFullscreen(!isFullscreen);
-    }
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
   };
 
-  const handleFullScreenChange = async (isFullScreen: boolean) => {
+  const handleFullScreenChange = (isFullScreen: boolean) => {
     if (isLibraryMode) return;
-
     setIsFullscreen(isFullScreen);
-    try {
-      if (isFullScreen) {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      } else {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-      }
-    } catch (error) {
-      console.log('Orientation lock error:', error);
-    }
   };
 
   // YouTube player handlers
@@ -239,16 +212,22 @@ export default function VideoPlayer({
     void openVideoExternally();
   }, [autoOpenedExternal, embedError, isLibraryMode]);
 
-  // Reset orientation when component unmounts and auto-lock if library mode
+  // Set fullscreen visual mode and lock to landscape when library mode is active
   useEffect(() => {
     if (isLibraryMode) {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
       setIsFullscreen(true);
-    }
+      // Delay orientation lock to let Modal animation finish first
+      const timer = setTimeout(() => {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch((err) => {
+          console.warn('Orientation lock error (library mode):', err);
+        });
+      }, 350);
 
-    return () => {
-      ScreenOrientation.unlockAsync().catch(() => {});
-    };
+      return () => {
+        clearTimeout(timer);
+        ScreenOrientation.unlockAsync().catch(() => {});
+      };
+    }
   }, [isLibraryMode]);
 
   return (

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Pressable,
   PanResponder,
+  InteractionManager,
   useWindowDimensions,
 } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
@@ -71,11 +72,16 @@ export default function WorkoutSequenceScreen() {
 
   useEffect(() => {
     loadExercises();
-    // Lock to landscape for better video experience
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    // Lock to landscape for better video experience - delay to let navigation animation finish
+    const interactionPromise = InteractionManager.runAfterInteractions(() => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch((err) => {
+        console.warn('Failed to lock orientation to landscape:', err);
+      });
+    });
     
     return () => {
-      ScreenOrientation.unlockAsync();
+      interactionPromise.cancel();
+      ScreenOrientation.unlockAsync().catch(() => {});
     };
   }, []);
 
