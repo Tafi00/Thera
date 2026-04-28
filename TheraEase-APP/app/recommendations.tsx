@@ -160,7 +160,7 @@ export default function RecommendationsScreen() {
             Mức đau hiện tại: {activePainVideoLabel}
           </Text>
           <Text style={styles.mixSummary}>
-            đã thiết lập {regularVideosCount} bài tập đơn và {deviceVideosCount} bài tập có sử dụng máy
+            Đã thiết lập {regularVideosCount} bài tập đơn và {deviceVideosCount} bài tập có sử dụng máy
           </Text>
 
         </View>
