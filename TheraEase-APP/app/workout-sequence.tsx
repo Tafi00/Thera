@@ -170,6 +170,13 @@ export default function WorkoutSequenceScreen() {
 
   const handleComplete = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Unlock orientation back to portrait before navigating away
+    try {
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    } catch {
+      await ScreenOrientation.unlockAsync().catch(() => {});
+    }
     
     // Save workout log for each exercise
     if (user && params.planId && params.day) {
@@ -422,8 +429,13 @@ export default function WorkoutSequenceScreen() {
           <View style={styles.header} pointerEvents="box-none">
             <TouchableOpacity
               style={styles.backButton}
-              onPress={(event) => {
+              onPress={async (event) => {
                 event.stopPropagation();
+                try {
+                  await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                } catch {
+                  await ScreenOrientation.unlockAsync().catch(() => {});
+                }
                 router.back();
               }}
               activeOpacity={0.85}
