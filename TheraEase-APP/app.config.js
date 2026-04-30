@@ -17,7 +17,11 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "vn.therahome.app",
-      buildNumber: "1"
+      buildNumber: "1",
+      infoPlist: {
+        NSUserTrackingUsageDescription: "Ứng dụng cần quyền này để cải thiện trải nghiệm của bạn",
+        LSApplicationQueriesSchemes: ["https", "http"]
+      }
     },
     android: {
       adaptiveIcon: {
