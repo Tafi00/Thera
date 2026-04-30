@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/stores/authStore';
-import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -42,7 +42,7 @@ export default function PlanReadyScreen() {
         <View style={styles.content}>
           <Animated.View entering={FadeInUp.duration(600).springify()}>
             <Text style={styles.title}>
-              Chào bạn <Text style={styles.bold}>{user?.full_name || 'Khách hàng'}</Text>,{'\n'}
+              Chào bạn<Text style={styles.bold}>{user?.full_name?.trim() ? ` ${user.full_name.trim()}` : ''}</Text>,{'\n'}
               Lộ trình cá nhân hoá, ngay tại nhà của bạn đã sẵn sàng!
             </Text>
           </Animated.View>
@@ -104,36 +104,42 @@ export default function PlanReadyScreen() {
                 <Text style={styles.planTitle}>Lộ trình 14 ngày</Text>
              </View>
 
-             <View style={styles.planPreview}>
-                <View style={styles.planPreviewCopy}>
-                   <Text style={styles.planPreviewEyebrow}>Luyện tập cùng hướng dẫn mẫu</Text>
-                   <Text style={styles.planPreviewText}>
-                     Theo từng ngày để tiến đều tới mục tiêu mà không bỏ lỡ buổi nào.
-                   </Text>
+             <View style={styles.topSection}>
+                <View style={styles.topLeftGrid}>
+                   {PLAN_DAYS.slice(0, 4).map((day, index) => (
+                      <Animated.View 
+                        key={day.id} 
+                        entering={ZoomIn.delay(100 * index).duration(400)}
+                        style={[styles.gridItem, { width: '47%' }]}
+                      >
+                         <Text style={styles.dayNumber}>{day.id}</Text>
+                      </Animated.View>
+                   ))}
                 </View>
 
-                <Animated.View entering={FadeInUp.delay(200).duration(450)} style={styles.avatarCard}>
-                   <Image
-                     source={require('../../assets/gender-male.png')}
-                     style={styles.avatarImage}
-                     resizeMode="contain"
-                   />
-                </Animated.View>
+                <View style={styles.topRightImage}>
+                   <View style={styles.planIllustrationCard}>
+                      <Image
+                        source={require('../../assets/Lấy lộ trình.png')}
+                        style={styles.planIllustrationImage}
+                        resizeMode="contain"
+                      />
+                   </View>
+                </View>
              </View>
              
-             <View style={styles.grid}>
-                {PLAN_DAYS.map((day, index) => (
+             <View style={styles.bottomGrid}>
+                {PLAN_DAYS.slice(4).map((day, index) => (
                    <Animated.View 
                      key={day.id} 
-                     entering={ZoomIn.delay(100 * index).duration(400)}
+                     entering={ZoomIn.delay(100 * (index + 4)).duration(400)}
                      style={styles.gridItem}
                    >
                       <Text style={styles.dayNumber}>{day.id}</Text>
-                      <Text style={[styles.dayTitle, day.isRest && styles.restText]} numberOfLines={2}>
-                        {day.title}
-                      </Text>
                    </Animated.View>
                 ))}
+                <View style={{ width: '23%' }} />
+                <View style={{ width: '23%' }} />
              </View>
 
              <TouchableOpacity 
@@ -169,6 +175,7 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: 'bold',
+    color: '#333',
   },
   chartContainer: {
     backgroundColor: '#F9FAFB',
@@ -235,55 +242,45 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-  planPreview: {
+  topSection: {
     flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 15,
     paddingTop: 14,
-    paddingBottom: 6,
+    justifyContent: 'space-between',
   },
-  planPreviewCopy: {
-    flex: 1,
-    paddingRight: 12,
+  topLeftGrid: {
+    width: '49%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignContent: 'flex-start',
   },
-  planPreviewEyebrow: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2563EB',
-    marginBottom: 6,
+  topRightImage: {
+    width: '49%',
+    alignItems: 'flex-end',
   },
-  planPreviewText: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#4B5563',
+  bottomGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 15,
+    justifyContent: 'space-between',
   },
-  avatarCard: {
-    width: width * 0.3,
-    height: width * 0.38,
+  planIllustrationCard: {
+    width: width * 0.36,
+    height: width * 0.44,
+    borderRadius: 20,
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    overflow: 'hidden',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
   },
-  avatarImage: {
+  planIllustrationImage: {
     width: '100%',
     height: '100%',
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 15,
-    justifyContent: 'space-between',
-  },
   gridItem: {
-    width: '22%',
-    minHeight: 84,
+    width: '23%',
+    minHeight: 76,
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     marginBottom: 10,
@@ -295,17 +292,9 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   dayNumber: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#10B981',
-  },
-  dayTitle: {
-    fontSize: 9,
-    textAlign: 'center',
-    color: '#666',
-  },
-  restText: {
-    color: '#999',
   },
   ctaButton: {
     backgroundColor: '#3B82F6',

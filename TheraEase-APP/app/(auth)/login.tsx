@@ -6,6 +6,7 @@ import {
 	ImageBackground,
 	Alert,
 	Platform,
+	Image,
 } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
@@ -488,15 +489,15 @@ export default function LoginScreen() {
 
 	return (
 		<ImageBackground
-			source={require("../../assets/welcome-bg.jpg")}
+			source={require("../../assets/background_login.png")}
 			style={styles.container}
 			resizeMode="cover"
 		>
 			<LinearGradient
 				colors={[
-					"rgba(91, 155, 213, 0.5)",
-					"rgba(74, 127, 184, 0.6)",
-					"rgba(58, 111, 160, 0.7)",
+					"rgba(0, 0, 0, 0.1)",
+					"rgba(0, 0, 0, 0.3)",
+					"rgba(0, 0, 0, 0.6)",
 				]}
 				style={styles.container}
 			>
@@ -508,12 +509,12 @@ export default function LoginScreen() {
 							entering={BounceIn.duration(1000)}
 							style={styles.logoContainer}
 						>
-							<Animated.Text
+							<Animated.Image
 								entering={FadeInUp.delay(400)}
-								style={styles.title}
-							>
-								TheraHOME
-							</Animated.Text>
+								source={require("../../assets/TheraHome_logo_white.png")}
+								style={styles.logoImage}
+								resizeMode="contain"
+							/>
 
 							<Animated.View entering={FadeInUp.delay(600)}>
 								<TypewriterText />
@@ -625,6 +626,11 @@ const styles = StyleSheet.create({
 		textShadowColor: "rgba(0, 0, 0, 0.3)",
 		textShadowOffset: { width: 0, height: 2 },
 		textShadowRadius: 4,
+	},
+	logoImage: {
+		width: width * 0.8,
+		height: width * 0.25,
+		marginBottom: 16,
 	},
 	typewriterContainer: {
 		minHeight: 60,

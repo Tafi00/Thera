@@ -29,20 +29,42 @@ const OPTIONS = [
 export default function MethodEffectivenessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const handleSelect = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedId(id);
+    
+    if (id === 'all') {
+      if (selectedIds.includes('all')) {
+        setSelectedIds([]);
+      } else {
+        setSelectedIds(OPTIONS.map(o => o.id));
+      }
+      return;
+    }
+
+    let newSelected = [...selectedIds];
+    if (newSelected.includes(id)) {
+      newSelected = newSelected.filter(item => item !== id && item !== 'all');
+    } else {
+      newSelected.push(id);
+      const allOthers = OPTIONS.filter(o => o.id !== 'all').map(o => o.id);
+      if (allOthers.every(o => newSelected.includes(o))) {
+        newSelected.push('all');
+      }
+    }
+    setSelectedIds(newSelected);
   };
 
   const handleNext = async () => {
-    if (!selectedId) return;
-    const selectedOption = OPTIONS.find(o => o.id === selectedId);
+    if (selectedIds.length === 0) return;
+    const selectedLabels = OPTIONS.filter(o => selectedIds.includes(o.id) && o.id !== 'all').map(o => o.label);
+    const reasonText = selectedLabels.join(', ');
+    
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.replace({ 
       pathname: '/(auth)/ai-analysing', 
-      params: { ...params, methodFailureReason: selectedOption?.label } 
+      params: { ...params, methodFailureReason: reasonText } 
     });
   };
 
@@ -79,7 +101,7 @@ export default function MethodEffectivenessScreen() {
             contentContainerStyle={styles.scrollContent}
           >
             {OPTIONS.map((option, index) => {
-              const isSelected = selectedId === option.id;
+              const isSelected = selectedIds.includes(option.id);
               const Icon = option.icon;
               
               return (
@@ -132,14 +154,15 @@ export default function MethodEffectivenessScreen() {
             <Button
               mode="contained"
               onPress={handleNext}
-              disabled={!selectedId}
+              disabled={selectedIds.length === 0}
               style={[
                 styles.button,
-                !selectedId && styles.buttonDisabled
+                selectedIds.length === 0 && styles.buttonDisabled
               ]}
               contentStyle={styles.buttonContent}
               labelStyle={styles.buttonLabel}
               buttonColor={colors.primary}
+              uppercase={false}
             >
               TIẾP TỤC
             </Button>
@@ -273,5 +296,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 1,
+    lineHeight: 26,
   },
 });

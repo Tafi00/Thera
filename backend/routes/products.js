@@ -8,6 +8,7 @@ function serializeProduct(item) {
     id: item._id,
     key: item.key,
     name: item.name,
+    image_url: item.image_url || '',
     purchase_link: item.purchase_link || '',
     is_active: item.is_active,
     created_at: item.created_at,

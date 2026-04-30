@@ -12,13 +12,14 @@ import {
 	PanResponder,
 	Alert,
 	Keyboard,
+	Image,
+	Pressable,
 } from "react-native";
 import { Text, TextInput, ActivityIndicator } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import {
 	X,
 	Send,
-	Bot,
 	User as UserIcon,
 	Sparkles,
 	Trash2,
@@ -32,12 +33,57 @@ import { colors } from "@/utils/theme";
 const { width, height } = Dimensions.get("window");
 const BUTTON_SIZE = 60;
 const EDGE_PADDING = 20;
+const CHATBOT_AVATAR = require("../../assets/Xin chao tôi là trợ lí.png");
 
 interface Message {
 	id: string;
 	role: "user" | "assistant";
 	content: string;
 	created_at: string;
+}
+
+const SUGGESTIONS = [
+	"Tôi đang đau mỏi cổ- vai",
+	"Tôi đau lan tê cả tay",
+	"Tôi cảm thấy đau đầu",
+	"Hướng dẫn tôi sử dụng TheraNECK"
+];
+
+function ChatbotAvatar({
+	size,
+	style,
+	imageStyle,
+}: {
+	size: number;
+	style?: any;
+	imageStyle?: any;
+}) {
+	return (
+		<View
+			style={[
+				styles.chatbotAvatarBase,
+				{
+					width: size,
+					height: size,
+					borderRadius: size / 2,
+				},
+				style,
+			]}
+		>
+			<Image
+				source={CHATBOT_AVATAR}
+				style={[
+					{
+						width: size + 18,
+						height: size + 18,
+						marginBottom: -5,
+					},
+					imageStyle,
+				]}
+				resizeMode="contain"
+			/>
+		</View>
+	);
 }
 
 export default function FloatingChatbot() {
@@ -126,41 +172,34 @@ export default function FloatingChatbot() {
 		}),
 	).current;
 
-	// Greeting bubble cycle
+	const hasShownGreetingRef = useRef(false);
+
+	// Greeting bubble - show only once per session
 	useEffect(() => {
 		if (!user) {
 			setShowGreetingBubble(false);
 			return;
 		}
 
-		if (visible) {
+		// Don't show if modal is visible, or if we've already shown it this session
+		if (visible || hasShownGreetingRef.current) {
 			setShowGreetingBubble(false);
 			return;
 		}
 
-		let cycleHideTimeout: ReturnType<typeof setTimeout> | null = null;
+		// Mark as shown so it doesn't appear again
+		hasShownGreetingRef.current = true;
+		
+		// Show bubble
+		setShowGreetingBubble(true);
 
-		const showBubble = () => {
-			setShowGreetingBubble(true);
-
-			if (cycleHideTimeout) {
-				clearTimeout(cycleHideTimeout);
-			}
-
-			cycleHideTimeout = setTimeout(() => {
-				setShowGreetingBubble(false);
-			}, 6000);
-		};
-
-		showBubble();
-
-		const interval = setInterval(showBubble, 20000);
+		// Hide after 6 seconds
+		const timeout = setTimeout(() => {
+			setShowGreetingBubble(false);
+		}, 6000);
 
 		return () => {
-			if (cycleHideTimeout) {
-				clearTimeout(cycleHideTimeout);
-			}
-			clearInterval(interval);
+			clearTimeout(timeout);
 		};
 	}, [user?.id, user?.gender, visible]);
 
@@ -327,7 +366,7 @@ export default function FloatingChatbot() {
 							colors={["#5B9BD5", "#4A7FB8"]}
 							style={styles.avatar}
 						>
-							<Bot size={16} color="#FFFFFF" />
+							<ChatbotAvatar size={24} imageStyle={styles.smallAvatarImage} />
 						</LinearGradient>
 					</View>
 				)}
@@ -409,7 +448,10 @@ export default function FloatingChatbot() {
 							colors={["#5B9BD5", "#4A7FB8"]}
 							style={styles.floatingButtonGradient}
 						>
-							<Bot size={28} color="#FFFFFF" strokeWidth={2.5} />
+							<ChatbotAvatar
+								size={BUTTON_SIZE - 8}
+								imageStyle={styles.floatingAvatarImage}
+							/>
 						</LinearGradient>
 					</RNAnimated.View>
 				</RNAnimated.View>
@@ -427,16 +469,9 @@ export default function FloatingChatbot() {
 					style={styles.keyboardAvoid}
 					keyboardVerticalOffset={0}
 				>
-					<TouchableOpacity
-						style={styles.modalOverlay}
-						activeOpacity={1}
-						onPress={handleClose}
-					>
-						<TouchableOpacity
-							activeOpacity={1}
-							style={styles.chatContainer}
-							onPress={(e) => e.stopPropagation()}
-						>
+					<View style={styles.modalOverlay}>
+						<Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+						<View style={styles.chatContainer}>
 							{/* Header - Fixed at top */}
 							<LinearGradient
 								colors={["#5B9BD5", "#4A7FB8"]}
@@ -445,7 +480,11 @@ export default function FloatingChatbot() {
 								<View style={styles.header}>
 									<View style={styles.headerLeft}>
 										<View style={styles.headerIcon}>
-											<Bot size={24} color="#FFFFFF" />
+											<ChatbotAvatar
+												size={34}
+												style={styles.headerAvatar}
+												imageStyle={styles.headerAvatarImage}
+											/>
 										</View>
 										<View>
 											<Text style={styles.headerTitle}>TheraAI</Text>
@@ -495,6 +534,18 @@ export default function FloatingChatbot() {
 										<View style={styles.emptyContainer}>
 											<Text style={styles.emptyTitle}>Xin chào! 👋</Text>
 											<Text style={styles.emptyText}>{greetingText}</Text>
+											<View style={styles.suggestionsWrapper}>
+												{SUGGESTIONS.map((suggestion, index) => (
+													<TouchableOpacity 
+														key={index}
+														style={styles.suggestionChip}
+														onPress={() => setInputText(suggestion)}
+														activeOpacity={0.7}
+													>
+														<Text style={styles.suggestionText}>{suggestion}</Text>
+													</TouchableOpacity>
+												))}
+											</View>
 										</View>
 									) : (
 										messages.map((msg, idx) => renderMessage(msg, idx))
@@ -507,7 +558,10 @@ export default function FloatingChatbot() {
 													colors={["#5B9BD5", "#4A7FB8"]}
 													style={styles.avatar}
 												>
-													<Bot size={16} color="#FFFFFF" />
+													<ChatbotAvatar
+														size={24}
+														imageStyle={styles.smallAvatarImage}
+													/>
 												</LinearGradient>
 											</View>
 											<View style={styles.loadingMessage}>
@@ -536,6 +590,7 @@ export default function FloatingChatbot() {
 											underlineColor="transparent"
 											activeUnderlineColor="transparent"
 											placeholderTextColor="#9CA3AF"
+											textColor={colors.text}
 											cursorColor={colors.primary}
 											selectionColor={colors.primary + "40"}
 										/>
@@ -566,8 +621,8 @@ export default function FloatingChatbot() {
 									</View>
 								</View>
 							</LinearGradient>
-						</TouchableOpacity>
-					</TouchableOpacity>
+						</View>
+					</View>
 				</KeyboardAvoidingView>
 			</Modal>
 		</>
@@ -592,6 +647,19 @@ const styles = StyleSheet.create({
 		borderRadius: BUTTON_SIZE / 2,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	chatbotAvatarBase: {
+		overflow: "hidden",
+		alignItems: "center",
+		justifyContent: "flex-end",
+		backgroundColor: "rgba(255, 255, 255, 0.18)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.92)",
+	},
+	floatingAvatarImage: {
+		width: BUTTON_SIZE + 26,
+		height: BUTTON_SIZE + 26,
+		marginBottom: -8,
 	},
 	greetingBubbleWrap: {
 		position: "absolute",
@@ -694,6 +762,15 @@ const styles = StyleSheet.create({
 		marginRight: 12,
 		backgroundColor: "rgba(255, 255, 255, 0.2)",
 	},
+	headerAvatar: {
+		borderWidth: 1.5,
+		backgroundColor: "rgba(255, 255, 255, 0.12)",
+	},
+	headerAvatarImage: {
+		width: 46,
+		height: 46,
+		marginBottom: -6,
+	},
 	headerTitle: {
 		fontSize: 18,
 		fontWeight: "bold",
@@ -717,7 +794,7 @@ const styles = StyleSheet.create({
 	messagesContent: {
 		padding: 16,
 		paddingBottom: 100,
-		minHeight: height * 0.9,
+		flexGrow: 1,
 	},
 	emptyContainer: {
 		flex: 1,
@@ -736,6 +813,32 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		lineHeight: 20,
 		paddingHorizontal: 24,
+	},
+	suggestionsWrapper: {
+		marginTop: 24,
+		width: '100%',
+		gap: 10,
+		paddingHorizontal: 16,
+	},
+	suggestionChip: {
+		backgroundColor: '#FFFFFF',
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		borderRadius: 14,
+		borderWidth: 1,
+		borderColor: '#E5E7EB',
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.05,
+		shadowRadius: 2,
+		elevation: 1,
+		alignItems: 'center',
+	},
+	suggestionText: {
+		fontSize: 14,
+		color: '#4B5563',
+		fontWeight: '500',
+		textAlign: 'center',
 	},
 	messageRow: {
 		flexDirection: "row",
@@ -758,6 +861,11 @@ const styles = StyleSheet.create({
 		borderRadius: 14,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	smallAvatarImage: {
+		width: 34,
+		height: 34,
+		marginBottom: -4,
 	},
 	messageContainer: {
 		maxWidth: "75%",
@@ -828,6 +936,7 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		paddingHorizontal: 0,
 		minHeight: 40,
+		color: colors.text,
 	},
 	sendButton: {
 		marginLeft: 8,

@@ -4,6 +4,12 @@ const exerciseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, default: '' },
   video_url: { type: String, required: true },
+  video_urls_by_pain: {
+    no_pain: { type: String, default: '' },
+    mild: { type: String, default: '' },
+    moderate: { type: String, default: '' },
+    severe: { type: String, default: '' },
+  },
   thumbnail_url: { type: String, default: '' },
   duration: { type: Number, default: 0 },
   calories: { type: Number, default: 0 },

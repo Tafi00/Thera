@@ -152,6 +152,7 @@ export default function MedicalHistoryScreen() {
               contentStyle={styles.buttonContent}
               labelStyle={styles.buttonLabel}
               buttonColor={colors.primary}
+              uppercase={false}
             >
               TIẾP TỤC
             </Button>
@@ -307,6 +308,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 1,
+    lineHeight: 26,
   },
 });
 

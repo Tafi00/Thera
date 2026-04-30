@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { Home, Activity, Sparkles, User } from 'lucide-react-native';
+import { Home, Activity, Sparkles, User, Library } from 'lucide-react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import FloatingChatbot from '@/components/FloatingChatbot';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -87,6 +87,15 @@ export default function TabsLayout() {
             title: 'Khám phá',
             tabBarIcon: ({ color, size, focused }) => (
               <AnimatedTabIcon Icon={Sparkles} color={color} size={size} focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="library"
+          options={{
+            title: 'Thư viện',
+            tabBarIcon: ({ color, size, focused }) => (
+              <AnimatedTabIcon Icon={Library} color={color} size={size} focused={focused} />
             ),
           }}
         />

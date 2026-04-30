@@ -4,9 +4,11 @@ import { Text, List, Switch, Button, Divider, SegmentedButtons } from 'react-nat
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
-import { signOut } from '@/services/auth';
-import { scheduleDailyReminder, cancelAllNotifications } from '@/services/notifications';
+import { signOut, updateProfile } from '@/services/auth';
+import { rescheduleSmartNotifications, cancelAllNotifications, registerForPushNotifications } from '@/services/notifications';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function SettingsScreen() {
@@ -16,18 +18,44 @@ export default function SettingsScreen() {
   const styles = createStyles(colors);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // Derive unlocked state similarly to home.tsx (or assume true if bypassed)
+  const personalizedPlanUnlocked = true;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (typeof user?.notifications_enabled === 'boolean') {
+        setNotificationsEnabled(user.notifications_enabled);
+        void AsyncStorage.setItem('notificationsEnabled', String(user.notifications_enabled));
+        return;
+      }
+
+      AsyncStorage.getItem('notificationsEnabled').then((val: string | null) => {
+        if (val !== null) {
+          setNotificationsEnabled(val === 'true');
+          return;
+        }
+      });
+    }, [user?.notifications_enabled])
+  );
+
   const handleNotificationToggle = async (value: boolean) => {
     setNotificationsEnabled(value);
-    
-    if (value && user?.preferred_time) {
-      await scheduleDailyReminder(parseInt(user.preferred_time.split(':')[0]), parseInt(user.preferred_time.split(':')[1]));
+    await AsyncStorage.setItem('notificationsEnabled', String(value));
+
+    let currentUser = user;
+
+    if (user) {
+      const updatedUser = await updateProfile({ notifications_enabled: value });
+      useAuthStore.getState().setUser(updatedUser);
+      currentUser = updatedUser;
+    }
+
+    if (value && currentUser) {
+      await registerForPushNotifications();
+      await rescheduleSmartNotifications(currentUser, personalizedPlanUnlocked);
     } else {
       await cancelAllNotifications();
     }
-  };
-
-  const handleChangeTime = () => {
-    router.push('/notification-settings');
   };
 
   const handleLogout = () => {
@@ -107,13 +135,13 @@ export default function SettingsScreen() {
             />
           )}
         />
-        <List.Item
-          title="Thời gian nhắc nhở"
-          description={user?.preferred_time?.substring(0, 5) || '20:00'}
-          left={props => <List.Icon {...props} icon="clock" />}
-          onPress={handleChangeTime}
-          disabled={!notificationsEnabled}
-        />
+        {notificationsEnabled && (
+          <List.Item
+            title="Lịch gửi thông báo"
+            description="Do quản trị viên thiết lập"
+            left={props => <List.Icon {...props} icon="clock" />}
+          />
+        )}
       </List.Section>
 
       <Divider />

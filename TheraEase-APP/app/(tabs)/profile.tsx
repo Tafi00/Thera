@@ -7,12 +7,13 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { User, Settings, Crown, LogOut, BarChart3, Bell, BellOff, ChevronRight, Activity, Calendar } from 'lucide-react-native';
 import { useAuthStore } from '@/stores/authStore';
-import { signOut } from '@/services/auth';
+import { signOut, updateProfile } from '@/services/auth';
 import { api } from '@/services/api';
 import { useTheme } from '@/contexts/ThemeContext';
 import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
-import { scheduleDailyReminder } from '@/services/notifications';
-import * as Notifications from 'expo-notifications';
+import { rescheduleSmartNotifications, cancelAllNotifications, registerForPushNotifications } from '@/services/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,23 @@ export default function ProfileScreen() {
   const [activationCode, setActivationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (typeof user?.notifications_enabled === 'boolean') {
+        setNotificationsEnabled(user.notifications_enabled);
+        void AsyncStorage.setItem('notificationsEnabled', String(user.notifications_enabled));
+        return;
+      }
+
+      AsyncStorage.getItem('notificationsEnabled').then((val) => {
+        if (val !== null) {
+          setNotificationsEnabled(val === 'true');
+          return;
+        }
+      });
+    }, [user?.notifications_enabled])
+  );
   const screenGradient: [string, string, string] = isDark
     ? ['#0B1220', '#111827', '#1F2937']
     : ['#EFF6FF', '#FFFFFF', '#F9FAFB'];
@@ -174,11 +192,18 @@ export default function ProfileScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   const newValue = !notificationsEnabled;
                   setNotificationsEnabled(newValue);
-                  if (newValue && user) {
-                    const time = user.preferred_time?.split(':') || ['08', '00'];
-                    await scheduleDailyReminder(parseInt(time[0]), parseInt(time[1]));
+                  await AsyncStorage.setItem('notificationsEnabled', String(newValue));
+                  let currentUser = user;
+                  if (user) {
+                    const updatedUser = await updateProfile({ notifications_enabled: newValue });
+                    setUser(updatedUser);
+                    currentUser = updatedUser;
+                  }
+                  if (newValue && currentUser) {
+                    await registerForPushNotifications();
+                    await rescheduleSmartNotifications(currentUser, true);
                   } else {
-                    await Notifications.cancelAllScheduledNotificationsAsync();
+                    await cancelAllNotifications();
                   }
                 }}
               >
@@ -205,7 +230,19 @@ export default function ProfileScreen() {
                   onValueChange={async (value) => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     setNotificationsEnabled(value);
-                    // Note: setupNotifications will be implemented later
+                    await AsyncStorage.setItem('notificationsEnabled', String(value));
+                    let currentUser = user;
+                    if (user) {
+                      const updatedUser = await updateProfile({ notifications_enabled: value });
+                      setUser(updatedUser);
+                      currentUser = updatedUser;
+                    }
+                    if (value && currentUser) {
+                      await registerForPushNotifications();
+                      await rescheduleSmartNotifications(currentUser, true);
+                    } else {
+                      await cancelAllNotifications();
+                    }
                   }}
                   color={colors.primary}
                 />

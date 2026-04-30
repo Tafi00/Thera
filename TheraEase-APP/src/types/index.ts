@@ -21,7 +21,9 @@ export interface User {
 	symptoms: string[];
 	surgery_history: string;
 	preferred_time: string;
+	notifications_enabled: boolean;
 	personalized_plan_started_at?: string | null;
+	personalized_plan_completed_at?: string | null;
 	personalized_plan_unlock_at?: string | null;
 	onboarding_completed: boolean;
 	owned_devices: Array<string | OwnedDevice>;
@@ -44,6 +46,12 @@ export interface Exercise {
 	title: string;
 	description?: string;
 	video_url: string;
+	video_urls_by_pain?: {
+		no_pain?: string;
+		mild?: string;
+		moderate?: string;
+		severe?: string;
+	};
 	thumbnail_url: string;
 	difficulty: "easy" | "medium" | "hard";
 	target_areas: string[];
@@ -118,4 +126,15 @@ export interface AIRecommendation {
 	reason: string;
 	priority: number;
 	estimated_duration?: number;
+}
+
+export interface NotificationInboxItem {
+	id: string;
+	key: string;
+	title: string;
+	body: string;
+	sent_at?: string | null;
+	created_at: string;
+	is_read: boolean;
+	read_at?: string | null;
 }

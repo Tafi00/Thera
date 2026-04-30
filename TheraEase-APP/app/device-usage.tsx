@@ -67,7 +67,7 @@ export default function DeviceUsageScreen() {
       const durationMinutes = Math.floor((DEVICE_DURATION - timeLeft) / 60);
       
       try {
-        await api.post('/misc/device-usage', {
+        await api.post('/device-usage', {
           pain_log_id: todayPainLog.id,
           device_level: deviceLevel,
           duration_minutes: durationMinutes,

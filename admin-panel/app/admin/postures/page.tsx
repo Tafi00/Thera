@@ -24,7 +24,7 @@ const CATEGORY_OPTIONS = [
   'Ngồi, nghỉ',
   'Dùng điện thoại',
   'Lái xe',
-  'Bế vác',
+  'Bê vác',
 ];
 
 export default function PosturesPage() {

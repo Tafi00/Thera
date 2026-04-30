@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 const FIXED_PLAN_DAYS = 14;
+const BLUE_PLAN_GRADIENT = ['#68A4DC', '#4E8FD0'] as const;
 
 export default function WorkoutPlansScreen() {
   const router = useRouter();
@@ -162,13 +163,7 @@ export default function WorkoutPlansScreen() {
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={
-                    plan.duration_days === 7
-                      ? ['#4A90E2', '#357ABD']
-                      : plan.duration_days === 21
-                      ? ['#F39C12', '#E67E22']
-                      : ['#9B59B6', '#8E44AD']
-                  }
+                  colors={BLUE_PLAN_GRADIENT}
                   style={styles.planGradient}
                 >
                   {/* PRO Badge */}
@@ -312,7 +307,7 @@ const styles = StyleSheet.create({
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -340,7 +335,7 @@ const styles = StyleSheet.create({
   targetBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,

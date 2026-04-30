@@ -1,0 +1,43 @@
+<svg width="400" height="960" viewBox="0 -20 200 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke="#94A3B8">
+    
+    <!-- Đầu -->
+    <path d="M 85 90 L 115 90 Q 130 85 130 50 A 30 30 0 0 0 70 50 Q 70 85 85 90 Z" fill="#F8FAFC" />
+    
+    <!-- Tay trái -->
+    <path d="M 15 170 Q 10 215 0 260 L 30 260 Q 40 215 45 170 Z" fill="#F8FAFC" />
+    
+    <!-- Tay phải -->
+    <path d="M 185 170 Q 190 215 200 260 L 170 260 Q 160 215 155 170 Z" fill="#F8FAFC" />
+    
+    <!-- Chân trái (đã cắt ngắn) -->
+    <path d="M 40 340 L 40 410 L 95 410 L 95 350 Z" fill="#F8FAFC" />
+
+    <!-- Chân phải (đã cắt ngắn) -->
+    <path d="M 160 340 L 160 410 L 105 410 L 105 350 Z" fill="#F8FAFC" />
+
+    <!-- === CÁC VÙNG CÓ TƯƠNG TÁC THÂN TRÊN === -->
+    
+    <!-- Zone 1: Neck & upper back -->
+    <path d="M 85 90 L 115 90 L 115 110 Q 125 145 155 170 L 45 170 Q 75 145 85 110 Z" fill="#F1F5F9" />
+    
+    <!-- Zone 2: Left Shoulder -->
+    <path d="M 85 110 Q 60 100 30 130 Q 20 150 15 170 L 45 170 Q 75 145 85 110 Z" fill="#F8FAFC" />
+    
+    <!-- Zone 3: Right Shoulder -->
+    <path d="M 115 110 Q 140 100 170 130 Q 180 150 185 170 L 155 170 Q 125 145 115 110 Z" fill="#F8FAFC" />
+    
+    <!-- Zone 4: Back (Mid/Lower) -->
+    <path d="M 45 170 L 155 170 Q 150 220 145 270 L 55 270 Q 50 220 45 170 Z" fill="#E2E8F0" />
+    
+    <!-- Zone 5: Glutes/Hip -->
+    <path d="M 55 270 L 145 270 Q 155 300 160 340 Q 150 390 130 390 Q 110 390 100 370 Q 90 390 70 390 Q 50 390 40 340 Q 45 300 55 270 Z" fill="#CBD5E1" />
+  </g>
+
+  <!-- Các nhãn text mô phỏng y hệt ảnh sketch -->
+  <text x="100" y="145" font-size="20" font-weight="bold" fill="#DE4545" text-anchor="middle" font-family="sans-serif">1</text>
+  <text x="35" y="145" font-size="20" font-weight="bold" fill="#DE4545" text-anchor="middle" font-family="sans-serif">2</text>
+  <text x="165" y="145" font-size="20" font-weight="bold" fill="#DE4545" text-anchor="middle" font-family="sans-serif">3</text>
+  <text x="100" y="220" font-size="20" font-weight="bold" fill="#DE4545" text-anchor="middle" font-family="sans-serif">4</text>
+  <text x="100" y="330" font-size="20" font-weight="bold" fill="#DE4545" text-anchor="middle" font-family="sans-serif">5</text>
+</svg>

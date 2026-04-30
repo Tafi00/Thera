@@ -65,7 +65,7 @@ export default function ReviewsScreen() {
 						"https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=1080",
 					rating: 5,
 					content:
-						"Tôi từng bị đau lưng kinh niên do ngồi văn phòng quá lâu. Sau 2 tuần tập luyện theo lộ trình cá nhân hóa của TheraHOME, cơn đau đã giảm đáng kể. Cảm ơn đội ngũ rất nhiều!",
+						"Tôi từng bị đau lưng kinh niên do ngồi văn phòng quá lâu. Sau 2 tuần tập luyện theo lộ trình cá nhân hóa của TheraHome, cơn đau đã giảm đáng kể. Cảm ơn đội ngũ rất nhiều!",
 					badge: "Giảm 80% đau",
 				},
 				{
@@ -215,6 +215,7 @@ export default function ReviewsScreen() {
 						contentStyle={styles.buttonContent}
 						labelStyle={styles.buttonLabel}
 						buttonColor="#3B82F6"
+						uppercase={false}
 					>
 						TIẾP TỤC
 					</Button>
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		flex: 1,
-		paddingTop: 60,
+		paddingTop: 40,
 	},
 	title: {
 		fontSize: 26,
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
 		color: "#000000",
 		textAlign: "center",
 		lineHeight: 34,
-		marginBottom: 30,
+		marginBottom: 15,
 		paddingHorizontal: 20,
 	},
 	reviewsListContainer: {
@@ -348,8 +349,8 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		paddingHorizontal: 40,
-		marginBottom: 40,
-		marginTop: 20,
+		marginBottom: 20,
+		marginTop: 8,
 		alignItems: "center",
 	},
 	button: {
@@ -368,5 +369,6 @@ const styles = StyleSheet.create({
 		fontSize: 20,
 		fontWeight: "bold",
 		color: "#FFFFFF",
+		lineHeight: 28,
 	},
 });

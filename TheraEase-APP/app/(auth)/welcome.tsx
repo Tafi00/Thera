@@ -35,9 +35,7 @@ export default function WelcomeScreen() {
 				<View style={styles.avatarContainer}>
 					<Animated.Image
 						entering={ZoomIn.duration(800).springify()}
-						source={{
-							uri: "https://img.freepik.com/free-photo/smiling-physiotherapist-standing-clinic_107420-65265.jpg",
-						}}
+						source={require('../../assets/Xin chao tôi là trợ lí.png')}
 						style={styles.avatar}
 					/>
 				</View>
@@ -68,6 +66,7 @@ export default function WelcomeScreen() {
 						contentStyle={styles.buttonContent}
 						labelStyle={styles.buttonLabel}
 						buttonColor="#3B82F6"
+						uppercase={false}
 					>
 						TÔI ĐÃ SẴN SÀNG!
 					</Button>
@@ -134,5 +133,6 @@ const styles = StyleSheet.create({
 		fontSize: 20,
 		fontWeight: "bold",
 		color: "#FFFFFF",
+		lineHeight: 28,
 	},
 });

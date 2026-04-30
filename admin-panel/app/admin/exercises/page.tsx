@@ -15,8 +15,22 @@ interface Exercise {
   difficulty: string;
   is_pro: boolean;
   thumbnail_url: string;
+  video_urls_by_pain?: {
+    no_pain?: string;
+    mild?: string;
+    moderate?: string;
+    severe?: string;
+  };
   created_at: string;
 }
+
+const getPainVideoCount = (exercise: Exercise) => {
+  const painVideos = exercise.video_urls_by_pain || {};
+  return ['no_pain', 'mild', 'moderate', 'severe'].filter((key) => {
+    const value = painVideos[key as keyof typeof painVideos];
+    return typeof value === 'string' && value.trim() !== '';
+  }).length;
+};
 
 export default function ExercisesPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -122,13 +136,16 @@ export default function ExercisesPage() {
               <th>Thumbnail</th>
               <th>Tên bài tập</th>
               <th>Danh mục</th>
-              <th>Độ khó</th>
+              <th>Video 4 mức</th>
               <th>PRO</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {filteredExercises.map((exercise) => (
+            {filteredExercises.map((exercise) => {
+              const painVideoCount = getPainVideoCount(exercise);
+
+              return (
               <tr key={exercise.id}>
                 <td>
                   <img
@@ -153,12 +170,8 @@ export default function ExercisesPage() {
                   </span>
                 </td>
                 <td>
-                  <span className={`badge ${
-                    exercise.difficulty === 'easy' ? 'badge-success' :
-                    exercise.difficulty === 'medium' ? 'badge-warning' :
-                    'badge-danger'
-                  }`}>
-                    {exercise.difficulty === 'easy' ? 'Dễ' : exercise.difficulty === 'medium' ? 'Trung bình' : 'Khó'}
+                  <span className={`badge ${painVideoCount === 4 ? 'badge-success' : 'badge-warning'}`}>
+                    {painVideoCount === 4 ? 'Đủ 4 mức' : `Thiếu ${4 - painVideoCount}/4`}
                   </span>
                 </td>
                 <td>
@@ -188,7 +201,7 @@ export default function ExercisesPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
 

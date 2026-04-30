@@ -48,6 +48,7 @@ export default function UnderstandingScreen() {
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
             buttonColor="#3B82F6"
+            uppercase={false}
           >
             Kiểm tra tình trạng
           </Button>
@@ -125,5 +126,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     textTransform: 'none',
+    lineHeight: 28,
   },
 });

@@ -26,7 +26,7 @@ export default function NewWorkoutPlanPage() {
   // Form data
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [durationDays, setDurationDays] = useState(7);
+  const [durationDays, setDurationDays] = useState(14);
   const [targetArea, setTargetArea] = useState('neck');
   const [difficulty, setDifficulty] = useState('easy');
   const [isPro, setIsPro] = useState(false);
@@ -147,7 +147,7 @@ export default function NewWorkoutPlanPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="input"
-                placeholder="Ví dụ: Lộ trình trị liệu cổ 7 ngày"
+                placeholder="Ví dụ: Lộ trình trị liệu cổ 14 ngày"
                 required
               />
             </div>

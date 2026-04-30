@@ -5,6 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useAuthStore } from '@/stores/authStore';
 import * as Linking from 'expo-linking';
+import { configureNotifications } from '@/services/notifications';
+
+configureNotifications(); // Register foreground notification handler
 
 function RootLayoutContent() {
   const { theme } = useTheme();

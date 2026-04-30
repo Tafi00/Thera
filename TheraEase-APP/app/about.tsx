@@ -19,11 +19,11 @@ export default function AboutScreen() {
 				style={styles.content}
 				contentContainerStyle={styles.contentContainer}
 			>
-				<Text style={styles.title}>Về TheraHOME</Text>
+				<Text style={styles.title}>Về TheraHome</Text>
 				<Text style={styles.date}>Phiên bản 1.0.0</Text>
 
 				<Text style={styles.intro}>
-					TheraHOME là ứng dụng chăm sóc sức khỏe cột sống thông minh, được
+					TheraHome là ứng dụng chăm sóc sức khỏe cột sống thông minh, được
 					thiết kế để giúp bạn quản lý và cải thiện tình trạng đau cổ, đau lưng
 					một cách hiệu quả.
 				</Text>
@@ -47,11 +47,11 @@ export default function AboutScreen() {
 					Email: Bacsilong1974@gmail.com{"\n"}
 					Điện thoại: 0364.263.552{"\n"}
 					Địa chỉ: 234 Phạm Văn Đồng, Hà Nội{"\n"}
-					Website: https://theraease.vn
+					Website: https://therahome.vn
 				</Text>
 
 				<Text style={styles.footer}>
-					Cảm ơn bạn đã tin tưởng và sử dụng TheraHOME. Chúng tôi luôn nỗ lực để
+					Cảm ơn bạn đã tin tưởng và sử dụng TheraHome. Chúng tôi luôn nỗ lực để
 					mang đến trải nghiệm tốt nhất cho sức khỏe cột sống của bạn.
 				</Text>
 			</ScrollView>

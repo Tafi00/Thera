@@ -29,7 +29,9 @@ interface User {
 	symptoms: string[];
 	surgery_history: string;
 	preferred_time: string;
+	notifications_enabled: boolean;
 	personalized_plan_started_at?: string | null;
+	personalized_plan_completed_at?: string | null;
 	personalized_plan_unlock_at?: string | null;
 	onboarding_completed: boolean;
 	owned_devices: Array<string | OwnedDevice>;
@@ -60,6 +62,7 @@ export function createGuestUser(): User {
     symptoms: [],
     surgery_history: '',
     preferred_time: '20:00',
+    notifications_enabled: true,
     onboarding_completed: false,
     owned_devices: [],
     created_at: now,

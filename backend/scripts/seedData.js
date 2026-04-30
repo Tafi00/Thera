@@ -83,6 +83,12 @@ async function seedData() {
         title: 'Xoay cổ nhẹ nhàng',
         description: 'Bài tập xoay cổ cơ bản giúp giảm căng thẳng vùng cổ',
         video_url: 'https://www.youtube.com/watch?v=example1',
+        video_urls_by_pain: {
+          no_pain: 'https://www.youtube.com/watch?v=example1',
+          mild: 'https://www.youtube.com/watch?v=example1',
+          moderate: 'https://www.youtube.com/watch?v=example1',
+          severe: 'https://www.youtube.com/watch?v=example1',
+        },
         thumbnail_url: '',
         duration: 300,
         calories: 20,
@@ -99,6 +105,12 @@ async function seedData() {
         title: 'Kéo giãn vai',
         description: 'Bài tập kéo giãn vùng vai giúp giảm đau vai và cổ',
         video_url: 'https://www.youtube.com/watch?v=example2',
+        video_urls_by_pain: {
+          no_pain: 'https://www.youtube.com/watch?v=example2',
+          mild: 'https://www.youtube.com/watch?v=example2',
+          moderate: 'https://www.youtube.com/watch?v=example2',
+          severe: 'https://www.youtube.com/watch?v=example2',
+        },
         thumbnail_url: '',
         duration: 300,
         calories: 25,
@@ -115,6 +127,12 @@ async function seedData() {
         title: 'Kéo giãn lưng trên',
         description: 'Bài tập kéo giãn lưng trên, giảm đau cho dân văn phòng',
         video_url: 'https://www.youtube.com/watch?v=example3',
+        video_urls_by_pain: {
+          no_pain: 'https://www.youtube.com/watch?v=example3',
+          mild: 'https://www.youtube.com/watch?v=example3',
+          moderate: 'https://www.youtube.com/watch?v=example3',
+          severe: 'https://www.youtube.com/watch?v=example3',
+        },
         thumbnail_url: '',
         duration: 420,
         calories: 30,
@@ -131,6 +149,12 @@ async function seedData() {
         title: 'Cat-Cow Stretch',
         description: 'Bài tập phối hợp lưng giữa và lưng dưới theo kiểu yoga',
         video_url: 'https://www.youtube.com/watch?v=example4',
+        video_urls_by_pain: {
+          no_pain: 'https://www.youtube.com/watch?v=example4',
+          mild: 'https://www.youtube.com/watch?v=example4',
+          moderate: 'https://www.youtube.com/watch?v=example4',
+          severe: 'https://www.youtube.com/watch?v=example4',
+        },
         thumbnail_url: '',
         duration: 600,
         calories: 40,
@@ -147,6 +171,12 @@ async function seedData() {
         title: 'Bài tập toàn thân nâng cao',
         description: 'Bài tập PRO kết hợp nhiều vùng cơ thể',
         video_url: 'https://www.youtube.com/watch?v=example5',
+        video_urls_by_pain: {
+          no_pain: 'https://www.youtube.com/watch?v=example5',
+          mild: 'https://www.youtube.com/watch?v=example5',
+          moderate: 'https://www.youtube.com/watch?v=example5',
+          severe: 'https://www.youtube.com/watch?v=example5',
+        },
         thumbnail_url: '',
         duration: 900,
         calories: 80,
@@ -167,9 +197,9 @@ async function seedData() {
   const planCount = await WorkoutPlan.countDocuments();
   if (planCount === 0) {
     const plan = await WorkoutPlan.create({
-      title: 'Lộ trình trị liệu cổ 7 ngày',
-      description: 'Lộ trình tập luyện 7 ngày giúp giảm đau cổ hiệu quả cho người mới bắt đầu',
-      duration_days: 7,
+      title: 'Lộ trình trị liệu cổ 14 ngày',
+      description: 'Lộ trình tập luyện 14 ngày giúp giảm đau cổ hiệu quả cho người mới bắt đầu',
+      duration_days: 14,
       target_area: 'neck',
       difficulty: 'easy',
       is_pro: false,
@@ -180,7 +210,7 @@ async function seedData() {
     const exercises = await Exercise.find({ category: { $in: ['neck', 'shoulder'] } }).limit(2);
     if (exercises.length > 0) {
       const planExercises = [];
-      for (let day = 1; day <= 7; day++) {
+      for (let day = 1; day <= 14; day++) {
         exercises.forEach((ex, idx) => {
           planExercises.push({
             plan_id: plan._id,

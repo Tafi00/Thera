@@ -73,7 +73,7 @@ export default function AgeScreen() {
 
 							<Text style={styles.title}>Bạn bao nhiêu tuổi?</Text>
 							<Text style={styles.subtitle}>
-								Hãy cho chung tôi biết tuổi thật của bạn để đưa ra cường độ phù
+								Hãy cho chúng tôi biết tuổi thật của bạn để đưa ra cường độ phù
 								hợp.
 							</Text>
 						</MotiView>
@@ -134,6 +134,7 @@ export default function AgeScreen() {
 								contentStyle={styles.buttonContent}
 								labelStyle={styles.buttonLabel}
 								buttonColor={colors.primary}
+								uppercase={false}
 							>
 								TIẾP TỤC
 							</Button>
@@ -267,5 +268,6 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "800",
 		letterSpacing: 1,
+		lineHeight: 26,
 	},
 });

@@ -16,11 +16,19 @@ import type { Exercise } from '@/types';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { getUserBehavior } from '@/services/exercises';
+import { usePainStore } from '@/stores/painStore';
+import {
+  getPainVideoLevel,
+  getPainVideoLevelLabel,
+  getRelevantPainLevelForExercise,
+  resolveExerciseVideoUrl,
+} from '@/utils/painRouting';
 
 export default function ExerciseDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuthStore();
+  const { todayPainLog } = usePainStore();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -44,14 +52,14 @@ export default function ExerciseDetailScreen() {
 
     try {
       setLoading(true);
-      const { data, error } = await getExerciseById(params.id as string);
+      const exerciseData = await getExerciseById(params.id as string);
       
-      if (error || !data) {
-        console.error('Load exercise error:', error);
+      if (!exerciseData) {
+        console.error('Load exercise error: Exercise not found');
         return;
       }
 
-      setExercise(data);
+      setExercise(exerciseData);
     } catch (error) {
       console.error('Load exercise error:', error);
     } finally {
@@ -79,14 +87,14 @@ export default function ExerciseDetailScreen() {
         workoutData.day_number = parseInt(params.dayNumber as string);
       }
 
-      const { data, error } = await logWorkout(workoutData);
+      const logData = await logWorkout(workoutData);
 
-      if (error || !data) {
-        console.error('Log workout error:', error);
+      if (!logData) {
+        console.error('Log workout error: No data returned');
         return;
       }
 
-      setWorkoutLogId(data.id);
+      setWorkoutLogId(logData.id || logData._id);
       setPlaying(true);
     } catch (error) {
       console.error('Start workout error:', error);
@@ -202,6 +210,10 @@ export default function ExerciseDetailScreen() {
     return colors.error;
   };
 
+  const resolvedPainLevel = getRelevantPainLevelForExercise(exercise, todayPainLog);
+  const resolvedPainLevelKey = getPainVideoLevel(resolvedPainLevel);
+  const resolvedVideoUrl = resolveExerciseVideoUrl(exercise, todayPainLog);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {!playing ? (
@@ -245,6 +257,13 @@ export default function ExerciseDetailScreen() {
                 <Text style={styles.infoCardValue}>~50</Text>
                 <Text style={styles.infoCardLabel}>Calo</Text>
               </View>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(250)} style={styles.painAnalysisCard}>
+              <Text style={styles.painAnalysisTitle}>Phân tích mức đau hiện tại</Text>
+              <Text style={styles.painAnalysisText}>
+                Video đang được chọn theo mức đau: {getPainVideoLevelLabel(resolvedPainLevelKey)}
+              </Text>
             </Animated.View>
 
             {/* Rating Stars (4 tiêu chí) */}
@@ -449,10 +468,15 @@ export default function ExerciseDetailScreen() {
           </ScrollView>
         </>
       ) : (
-        <Modal visible={playing} animationType="fade">
+        <Modal 
+          visible={playing} 
+          animationType="fade"
+          supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+        >
           <VideoPlayer
-            videoUrl={exercise.video_url}
+            videoUrl={resolvedVideoUrl}
             title={exercise.title}
+            isLibraryMode={true}
             onComplete={handleComplete}
             onClose={handleSkip}
           />
@@ -570,6 +594,25 @@ const styles = StyleSheet.create({
   infoCardLabel: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  painAnalysisCard: {
+    marginBottom: 24,
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  painAnalysisTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  painAnalysisText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   targetSection: {
     marginBottom: 24,

@@ -1,26 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, TrendingDown, TrendingUp, Minus, Target, Zap } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useAuthStore } from '@/stores/authStore';
 import { getPainLogs } from '@/services/painLogs';
-import { analyzePainTrends } from '@/services/groq';
 import { colors } from '@/utils/theme';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { usePainStore } from '@/stores/painStore';
+import type { PainLog } from '@/types';
 
 const { width } = Dimensions.get('window');
 
 export default function PainAnalysisScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ painArea?: string; painAreaLabel?: string; redirectTo?: string }>();
   const { user } = useAuthStore();
+  const { todayPainLog, setTodayPainLog, setPainHistory } = usePainStore();
   const [loading, setLoading] = useState(true);
-  const [todayPain, setTodayPain] = useState<any>(null);
-  const [yesterdayPain, setYesterdayPain] = useState<any>(null);
+  const [todayPain, setTodayPain] = useState<PainLog | null>(todayPainLog);
+  const [yesterdayPain, setYesterdayPain] = useState<PainLog | null>(null);
+  const [trendLogs, setTrendLogs] = useState<PainLog[]>([]);
   const [aiInsight, setAiInsight] = useState('');
 
   useEffect(() => {
@@ -33,20 +37,24 @@ export default function PainAnalysisScreen() {
     try {
       setLoading(true);
       
-      // Load 2 ngày gần nhất
-      const { data: logs } = await getPainLogs(2);
-      
-      if (logs && logs.length > 0) {
-        setTodayPain(logs[0]);
-        if (logs.length > 1) {
-          setYesterdayPain(logs[1]);
-        }
+      const logs = await getPainLogs(7);
+      const normalizedLogs = Array.isArray(logs) ? logs : [];
+      setTrendLogs(normalizedLogs);
+      setPainHistory(normalizedLogs);
+
+      if (normalizedLogs.length > 0) {
+        setTodayPain(normalizedLogs[0]);
+        setTodayPainLog(normalizedLogs[0]);
+        setYesterdayPain(normalizedLogs.length > 1 ? normalizedLogs[1] : null);
+      } else {
+        setTodayPain(null);
+        setYesterdayPain(null);
       }
 
-      // Generate AI insight
-      generateInsight(logs);
+      generateInsight(normalizedLogs);
     } catch (error) {
       console.error('Load pain comparison error:', error);
+      setAiInsight('Chưa thể phân tích tình trạng lúc này. Vui lòng thử lại sau ít phút.');
     } finally {
       setLoading(false);
     }
@@ -60,56 +68,97 @@ export default function PainAnalysisScreen() {
 
     const today = logs[0];
     const yesterday = logs.length > 1 ? logs[1] : null;
+    const oldest = logs[logs.length - 1];
+    const weeklyDiff =
+      oldest && typeof oldest.pain_level === 'number'
+        ? Number(today.pain_level || 0) - Number(oldest.pain_level || 0)
+        : 0;
 
-    try {
-      // Call Groq API for real AI analysis
-      const insight = await analyzePainTrends(logs);
-      setAiInsight(insight);
-    } catch (error) {
-      console.error('Error generating AI insight:', error);
-      // Fallback to simple analysis
-      if (!yesterday) {
-        setAiInsight(`Mức đau hôm nay: ${today.pain_level}/10. Hãy tiếp tục theo dõi để so sánh xu hướng.`);
-        return;
-      }
+    const weeklyTrendText =
+      weeklyDiff <= -1
+        ? 'và trong 7 ngày gần đây cũng có sự giảm dần'
+        : weeklyDiff >= 1
+          ? 'và trong 7 ngày gần đây có xu hướng tăng lên'
+          : 'và trong 7 ngày gần đây nhìn chung khá ổn định';
 
-      const diff = today.pain_level - yesterday.pain_level;
-      
-      if (diff < 0) {
-        setAiInsight(`Tuyệt vời! Mức đau giảm ${Math.abs(diff)} điểm so với hôm qua. Hãy tiếp tục duy trì các bài tập cải thiện.`);
-      } else if (diff > 0) {
-        setAiInsight(`Mức đau tăng ${diff} điểm so với hôm qua. Hãy nghỉ ngơi đầy đủ và làm các bài tập nhẹ nhàng hơn.`);
-      } else {
-        setAiInsight('Mức đau ổn định so với hôm qua. Hãy tiếp tục theo dõi và duy trì lộ trình cải thiện.');
-      }
+    if (!yesterday) {
+      setAiInsight(
+        `Mức đau của bạn hiện ở mức ${today.pain_level}/10 hôm nay, ${weeklyTrendText}. ` +
+        'Điều này cho thấy cơ thể bạn đang trong giai đoạn cần được theo dõi đều đặn hơn để đánh giá chính xác tiến triển. ' +
+        'Tôi khuyến khích bạn tiếp tục duy trì việc ghi nhận mức đau mỗi ngày, kết hợp nghỉ ngơi hợp lý và luyện tập nhẹ nhàng để cải thiện sức khỏe tổng thể.'
+      );
+      return;
     }
-  };
 
-  const getTrendIcon = () => {
-    if (!todayPain || !yesterdayPain) return <Minus size={32} color={colors.textSecondary} />;
-    
-    const diff = todayPain.pain_level - yesterdayPain.pain_level;
-    
-    if (diff < 0) return <TrendingDown size={32} color={colors.success} />;
-    if (diff > 0) return <TrendingUp size={32} color={colors.error} />;
-    return <Minus size={32} color={colors.warning} />;
-  };
+    const diff = Number(today.pain_level || 0) - Number(yesterday.pain_level || 0);
 
-  const getTrendColor = () => {
-    if (!todayPain || !yesterdayPain) return colors.textSecondary;
-    
-    const diff = todayPain.pain_level - yesterdayPain.pain_level;
-    
-    if (diff < 0) return colors.success;
-    if (diff > 0) return colors.error;
-    return colors.warning;
+    if (diff < 0) {
+      setAiInsight(
+        `Xu hướng đau của bạn đang giảm xuống rõ rệt, từ mức ${yesterday.pain_level}/10 hôm qua xuống còn ${today.pain_level}/10 hôm nay, ` +
+        `${weeklyTrendText}. Điều này cho thấy cơ thể bạn đang có những cải thiện tích cực, và bạn nên tiếp tục duy trì các hoạt động và phương pháp điều trị đã áp dụng. ` +
+        'Tôi khuyến khích bạn tiếp tục chăm sóc cơ thể đúng cách, đồng thời duy trì lối sống lành mạnh để giữ sự giảm đau và cải thiện sức khỏe tổng thể.'
+      );
+      return;
+    }
+
+    if (diff > 0) {
+      setAiInsight(
+        `Xu hướng đau của bạn đang tăng lên, từ mức ${yesterday.pain_level}/10 hôm qua lên ${today.pain_level}/10 hôm nay, ` +
+        `${weeklyTrendText}. Điều này cho thấy cơ thể bạn có thể đang chịu thêm áp lực hoặc chưa phục hồi tốt như kỳ vọng, và bạn nên điều chỉnh lại cường độ sinh hoạt cũng như luyện tập. ` +
+        'Tôi khuyến khích bạn chú ý nghỉ ngơi nhiều hơn, theo dõi kỹ các vùng đau và duy trì các phương pháp chăm sóc phù hợp để ổn định lại tình trạng sức khỏe tổng thể.'
+      );
+      return;
+    }
+
+    setAiInsight(
+      `Xu hướng đau của bạn hiện đang giữ nguyên, ở mức ${yesterday.pain_level}/10 hôm qua và ${today.pain_level}/10 hôm nay, ` +
+      `${weeklyTrendText}. Điều này cho thấy tình trạng của cơ thể bạn hiện khá ổn định, nhưng vẫn cần được theo dõi đều để bảo đảm không xuất hiện diễn biến xấu hơn. ` +
+      'Tôi khuyến khích bạn tiếp tục duy trì thói quen chăm sóc cơ thể, vận động vừa sức và theo dõi đều đặn để cải thiện sức khỏe tổng thể.'
+    );
   };
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Navigate to recommendations
-    router.push('/recommendations');
+    if (params.redirectTo) {
+      router.replace(params.redirectTo as any);
+    } else {
+      router.push({
+        pathname: '/workout-plans',
+        params: {
+          painArea: typeof params.painArea === 'string' ? params.painArea : '',
+          painAreaLabel: typeof params.painAreaLabel === 'string' ? params.painAreaLabel : '',
+        },
+      });
+    }
   };
+
+  const chartData = useMemo(() => {
+    const labels: string[] = [];
+    const values: number[] = [];
+
+    const source = [...trendLogs].slice(0, 7).reverse();
+
+    source.forEach((log, index) => {
+      if (index === source.length - 2) {
+        labels.push('Qua');
+      } else if (index === source.length - 1) {
+        labels.push('Nay');
+      } else {
+        const distance = source.length - index - 1;
+        labels.push(`${distance}d`);
+      }
+      values.push(Number(log.pain_level || 0));
+    });
+
+    if (values.length === 0) {
+      return null;
+    }
+
+    return {
+      labels,
+      datasets: [{ data: values }],
+    };
+  }, [trendLogs]);
 
   if (loading) {
     return (
@@ -237,14 +286,9 @@ export default function PainAnalysisScreen() {
         <Animated.View entering={FadeInDown.duration(400).delay(200)}>
           <View style={styles.chartCard}>
             <Text style={styles.chartTitle}>Xu hướng 7 ngày</Text>
-            {todayPain && (
+            {chartData && (
               <LineChart
-                data={{
-                  labels: ['6d', '5d', '4d', '3d', '2d', 'Qua', 'Nay'],
-                  datasets: [{
-                    data: [6, 5, 7, 8, 6, yesterdayPain?.pain_level || 7, todayPain.pain_level],
-                  }],
-                }}
+                data={chartData}
                 width={width - 64}
                 height={220}
                 chartConfig={{
@@ -315,7 +359,9 @@ export default function PainAnalysisScreen() {
               style={styles.ctaButtonInner}
             >
               <Target size={24} color="#FFF" />
-              <Text style={styles.ctaButtonText}>Xem bài tập phù hợp</Text>
+              <Text style={styles.ctaButtonText}>
+                {params.redirectTo === '/recommendations' ? 'Xem lộ trình cá nhân' : 'Xem bài tập phù hợp'}
+              </Text>
             </TouchableOpacity>
           </LinearGradient>
         </Animated.View>

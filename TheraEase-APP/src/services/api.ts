@@ -41,8 +41,8 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 
-const TOKEN_KEY = 'theraease_token';
-const USER_KEY = 'theraease_user';
+const TOKEN_KEY = 'therahome_token';
+const USER_KEY = 'therahome_user';
 
 class ApiClient {
   private token: string | null = null;

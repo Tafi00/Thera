@@ -42,6 +42,7 @@ export async function upsertProfile(data: {
   symptoms?: string[];
   surgery_history?: string;
   preferred_time?: string;
+  notifications_enabled?: boolean;
   avatar_url?: string;
 }) {
   try {

@@ -6,26 +6,29 @@ import {
 	TouchableOpacity,
 	Alert,
 	ScrollView,
+	Platform,
+	Modal,
 } from "react-native";
 import { Text, Button } from "react-native-paper";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import { LinearGradient } from "expo-linear-gradient";
-import { MotiView, AnimatePresence } from "moti";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { MotiView } from "moti";
 import {
 	Sun,
 	Moon,
 	Sparkles,
 	Bell,
-	Clock,
 	CircleCheckBig,
 	Info,
+	Clock,
 } from "lucide-react-native";
-import { colors } from "@/utils/theme";
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { updateProfile } from "@/services/auth";
 import { useAuthStore } from "@/stores/authStore";
+import { colors } from "@/utils/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -58,12 +61,37 @@ export default function ExerciseTimeScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
 	const { user, setUser } = useAuthStore();
-	const insets = useSafeAreaInsets();
 	const [selectedId, setSelectedId] = useState<string | null>(null);
-	const [notificationTime, setNotificationTime] = useState(
-		new Date(new Date().setHours(20, 0, 0, 0)),
-	);
-	const [showTimePicker, setShowTimePicker] = useState(false);
+	const [morningTime, setMorningTime] = useState(new Date(new Date().setHours(8, 0, 0, 0)));
+	const [eveningTime, setEveningTime] = useState(new Date(new Date().setHours(20, 5, 0, 0)));
+	const [showPickerFor, setShowPickerFor] = useState<"morning" | "evening" | null>(null);
+
+	const formatTime = (date: Date) => {
+		const h = date.getHours().toString().padStart(2, '0');
+		const m = date.getMinutes().toString().padStart(2, '0');
+		return `${h}:${m}`;
+	};
+
+	const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+		const pickerFor = showPickerFor;
+		if (Platform.OS === 'android') {
+			setShowPickerFor(null);
+		}
+		
+		if (selectedDate && pickerFor) {
+			if (pickerFor === "morning") {
+				setMorningTime(selectedDate);
+			} else {
+				setEveningTime(selectedDate);
+			}
+		}
+	};
+
+	const getPreferredTimeValue = (value: string) => {
+		if (value === "morning") return formatTime(morningTime);
+		if (value === "both") return `${formatTime(morningTime)},${formatTime(eveningTime)}`;
+		return formatTime(eveningTime);
+	};
 
 	const requestNotificationPermission = async () => {
 		const { status: existingStatus } =
@@ -85,24 +113,26 @@ export default function ExerciseTimeScreen() {
 		if (!selectedId) return;
 		await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 		await requestNotificationPermission();
-		const preferredTime = `${notificationTime.getHours().toString().padStart(2, "0")}:${notificationTime.getMinutes().toString().padStart(2, "0")}`;
 
 		if (user) {
-			setUser({ ...user, preferred_time: preferredTime });
+			const preferredTime = getPreferredTimeValue(selectedId);
+			setUser({
+				...user,
+				preferred_time: preferredTime,
+			});
+			if (user.id !== "guest") {
+				try {
+					await updateProfile({ preferred_time: preferredTime });
+				} catch (error) {
+					console.error("Lỗi lưu thời gian vào database:", error);
+				}
+			}
 		}
 
 		router.replace({
 			pathname: "/(auth)/name",
 			params: { ...params, exerciseTime: selectedId },
 		});
-	};
-
-	const onTimeChange = (event: any, selectedDate?: Date) => {
-		setShowTimePicker(false);
-		if (selectedDate) {
-			setNotificationTime(selectedDate);
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-		}
 	};
 
 	return (
@@ -114,17 +144,14 @@ export default function ExerciseTimeScreen() {
 
 			<SafeAreaView style={styles.safeArea}>
 				<ScrollView
-					style={styles.content}
-					contentContainerStyle={[
-						styles.contentContainer,
-						{ paddingBottom: insets.bottom + 24 },
-					]}
+					contentContainerStyle={styles.scrollContent}
 					showsVerticalScrollIndicator={false}
-					keyboardShouldPersistTaps="handled"
+					bounces={false}
 				>
-					<MotiView
-						from={{ opacity: 0, translateY: -20 }}
-						animate={{ opacity: 1, translateY: 0 }}
+					<View style={styles.content}>
+						<MotiView
+							from={{ opacity: 0, translateY: -20 }}
+							animate={{ opacity: 1, translateY: 0 }}
 						transition={{ type: "timing", duration: 800 }}
 						style={styles.header}
 					>
@@ -140,8 +167,7 @@ export default function ExerciseTimeScreen() {
 
 						<Text style={styles.title}>Bạn có thể dành thời gian lúc nào?</Text>
 						<Text style={styles.subtitle}>
-							Lý tưởng nhất là tập luyện từ 20h-22h hàng ngày. Tuy nhiên bạn có
-							thể chọn bất kỳ thời gian nào phù hợp với mình.
+							Hãy chọn khung thời gian bạn thấy thuận tiện nhất để duy trì thói quen tập luyện. Lịch thông báo sẽ do hệ thống thiết lập.
 						</Text>
 					</MotiView>
 
@@ -181,7 +207,6 @@ export default function ExerciseTimeScreen() {
 										onPress={() => {
 											Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 											setSelectedId(option.id);
-											setShowTimePicker(true);
 										}}
 										activeOpacity={0.8}
 									>
@@ -224,62 +249,63 @@ export default function ExerciseTimeScreen() {
 						})}
 					</View>
 
-					<AnimatePresence>
-						{selectedId && (
-							<MotiView
-								from={{ opacity: 0, translateY: 20 }}
-								animate={{ opacity: 1, translateY: 0 }}
-								exit={{ opacity: 0, translateY: 20 }}
-								style={styles.timeSection}
-							>
-								<View style={styles.timeCard}>
-									<View style={styles.timeHeader}>
-										<Clock size={20} color={colors.primary} />
-										<Text style={styles.timeTitle}>Giờ nhắc nhở tập luyện</Text>
-									</View>
-
-									<TouchableOpacity
-										style={styles.timePickerBtn}
-										onPress={() => setShowTimePicker(true)}
-									>
-										<Text style={styles.timeText}>
-											{notificationTime.getHours().toString().padStart(2, "0")}:
-											{notificationTime
-												.getMinutes()
-												.toString()
-												.padStart(2, "0")}
-										</Text>
-										<Text style={styles.changeLabel}>Thay đổi</Text>
-									</TouchableOpacity>
-
-									<View style={styles.recommendationBox}>
-										<Info size={16} color="#4F46E5" />
-										<Text style={styles.recommendationText}>
-											Khuyên dùng: Luyện tập vào{" "}
-											<Text style={{ fontWeight: "700" }}>20:00 - 22:00</Text>{" "}
-											giúp cơ thể phục hồi tốt nhất trước khi ngủ.
-										</Text>
-									</View>
+					{selectedId && (
+						<MotiView
+							from={{ opacity: 0, translateY: 20 }}
+							animate={{ opacity: 1, translateY: 0 }}
+							style={styles.timeSection}
+						>
+							<View style={styles.timeCard}>
+								<View style={styles.timeHeader}>
+									<Clock size={18} color="#6B7280" />
+									<Text style={styles.timeHeaderTitle}>Giờ nhắc nhở tập luyện</Text>
 								</View>
-							</MotiView>
-						)}
-					</AnimatePresence>
 
-					{showTimePicker && (
-						<DateTimePicker
-							value={notificationTime}
-							mode="time"
-							is24Hour={true}
-							display="spinner"
-							onChange={onTimeChange}
-						/>
+								{selectedId === "both" ? (
+									<>
+										<View style={styles.timeDisplayRow}>
+											<Text style={styles.timeValueText}>{formatTime(morningTime)}</Text>
+											<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor("morning")}>
+												<Text style={styles.changeTimeText}>Đổi (Sáng)</Text>
+											</TouchableOpacity>
+										</View>
+										<View style={styles.timeDisplayRow}>
+											<Text style={styles.timeValueText}>{formatTime(eveningTime)}</Text>
+											<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor("evening")}>
+												<Text style={styles.changeTimeText}>Đổi (Tối)</Text>
+											</TouchableOpacity>
+										</View>
+									</>
+								) : (
+									<View style={styles.timeDisplayRow}>
+										<Text style={styles.timeValueText}>
+											{selectedId === "morning" ? formatTime(morningTime) : formatTime(eveningTime)}
+										</Text>
+										<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor(selectedId as "morning" | "evening")}>
+											<Text style={styles.changeTimeText}>Thay đổi</Text>
+										</TouchableOpacity>
+									</View>
+								)}
+
+								<View style={styles.recommendationBox}>
+									<Info size={16} color="#4F46E5" style={{ marginTop: 2 }} />
+									<Text style={styles.recommendationText}>
+										{selectedId === "morning"
+											? "Khuyên dùng: Luyện tập vào 07:00 - 09:00 giúp bắt đầu ngày mới tràn đầy năng lượng."
+											: selectedId === "evening"
+											? "Khuyên dùng: Luyện tập vào 20:00 - 22:00 giúp cơ thể phục hồi tốt nhất trước khi ngủ."
+											: "Khuyên dùng: Luyện tập đều đặn vào 2 buổi sẽ giúp tối ưu hiệu quả và nhanh chóng phục hồi."}
+									</Text>
+								</View>
+							</View>
+						</MotiView>
 					)}
 
-					<MotiView
-						from={{ opacity: 0, translateY: 20 }}
-						animate={{ opacity: 1, translateY: 0 }}
-						transition={{ delay: 600, type: "timing", duration: 500 }}
-						style={styles.footer}
+						<MotiView
+							from={{ opacity: 0, translateY: 20 }}
+							animate={{ opacity: 1, translateY: 0 }}
+							transition={{ delay: 600, type: "timing", duration: 500 }}
+							style={styles.footer}
 					>
 						<Button
 							mode="contained"
@@ -289,12 +315,47 @@ export default function ExerciseTimeScreen() {
 							contentStyle={styles.buttonContent}
 							labelStyle={styles.buttonLabel}
 							buttonColor={colors.primary}
+							uppercase={false}
 						>
 							TIẾP TỤC
 						</Button>
 					</MotiView>
+					</View>
 				</ScrollView>
 			</SafeAreaView>
+
+			{showPickerFor && Platform.OS === 'android' && (
+				<DateTimePicker
+					value={showPickerFor === "morning" ? morningTime : eveningTime}
+					mode="time"
+					is24Hour={true}
+					display="default"
+					onChange={onTimeChange}
+				/>
+			)}
+
+			{Platform.OS === 'ios' && (
+				<Modal visible={!!showPickerFor} transparent={true} animationType="slide">
+					<View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+						<View style={{ backgroundColor: 'white', paddingBottom: 20 }}>
+							<View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }}>
+								<TouchableOpacity onPress={() => setShowPickerFor(null)}>
+									<Text style={{ color: '#007AFF', fontSize: 18, fontWeight: '600' }}>Xong</Text>
+								</TouchableOpacity>
+							</View>
+							{!!showPickerFor && (
+								<DateTimePicker
+									value={showPickerFor === "morning" ? morningTime : eveningTime}
+									mode="time"
+									is24Hour={true}
+									display="spinner"
+									onChange={onTimeChange}
+								/>
+							)}
+						</View>
+					</View>
+				</Modal>
+			)}
 		</View>
 	);
 }
@@ -306,10 +367,10 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 	},
-	content: {
-		flex: 1,
+	scrollContent: {
+		paddingBottom: 28,
 	},
-	contentContainer: {
+	content: {
 		paddingHorizontal: 24,
 	},
 	header: {
@@ -398,7 +459,7 @@ const styles = StyleSheet.create({
 		right: 12,
 	},
 	timeSection: {
-		marginBottom: 12,
+		marginBottom: 16,
 	},
 	timeCard: {
 		backgroundColor: "#FFFFFF",
@@ -413,31 +474,32 @@ const styles = StyleSheet.create({
 	timeHeader: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginBottom: 20,
+		marginBottom: 16,
 	},
-	timeTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#111827",
-		marginLeft: 10,
+	timeHeaderTitle: {
+		fontSize: 15,
+		fontWeight: "600",
+		color: "#4B5563",
+		marginLeft: 8,
 	},
-	timePickerBtn: {
-		backgroundColor: "#F8FAFC",
-		borderRadius: 16,
-		padding: 16,
+	timeDisplayRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 16,
+		marginBottom: 16,
 		borderWidth: 1,
-		borderColor: "#E2E8F0",
-		marginBottom: 20,
+		borderColor: "#F3F4F6",
 	},
-	timeText: {
-		fontSize: 32,
-		fontWeight: "800",
-		color: colors.primary,
+	timeValueText: {
+		fontSize: 34,
+		fontWeight: "700",
+		color: "#3BA1E3",
 	},
-	changeLabel: {
+	changeTimeText: {
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#6B7280",
@@ -458,7 +520,7 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		paddingTop: 8,
-		paddingBottom: 12,
+		paddingBottom: 20,
 	},
 	button: {
 		borderRadius: 20,
@@ -480,5 +542,6 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "800",
 		letterSpacing: 1,
+		lineHeight: 26,
 	},
 });

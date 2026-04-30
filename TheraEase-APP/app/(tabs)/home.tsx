@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
   Easing
 } from 'react-native-reanimated';
-import { Flame, TrendingUp, Heart, Activity, Target, ClipboardList, BarChart2, X, TrendingDown, Minus, Lock } from 'lucide-react-native';
+import { Flame, TrendingUp, Heart, Activity, Target, ClipboardList, BarChart2, X, TrendingDown, Minus, Lock, Bell } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useAuthStore } from '@/stores/authStore';
 import { usePainStore } from '@/stores/painStore';
@@ -30,6 +30,7 @@ import { getOwnedDeviceIds } from '@/utils/ownedDevices';
 import PainChart from '@/components/PainChart';
 import WaterTrackerCard from '@/components/WaterTrackerCard';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getNotificationInbox } from '@/services/notificationInbox';
 
 const { width } = Dimensions.get('window');
 
@@ -81,16 +82,20 @@ export default function HomeScreen() {
   const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
   const [waterCups, setWaterCups] = useState(2);
   const [waterGoal, setWaterGoal] = useState(8);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   const scoreProgress = useSharedValue(0);
   const scoreNumber = useSharedValue(0);
 
   const personalizedPlanUnlocked = useMemo(() => {
+    // nếu Bypassed thì comment dòng 90-93
+    if (!user?.personalized_plan_completed_at) return false;
     if (!user?.personalized_plan_unlock_at) return false;
     const unlockAt = new Date(user.personalized_plan_unlock_at).getTime();
     if (Number.isNaN(unlockAt)) return false;
     return Date.now() >= unlockAt;
-  }, [user?.personalized_plan_unlock_at]);
+    // return true; // Bypassed for testing
+  }, [user?.personalized_plan_completed_at, user?.personalized_plan_unlock_at]);
 
   const motivationMessages = [
     'Tiếp tục cố gắng!',
@@ -115,8 +120,33 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadWaterToday();
-    }, [user?.id])
+      void loadNotificationSummary();
+
+      // Update SMART Notification scheduling whenever the user visits the home screen (which acts as an "app open" activity tracker)
+      if (user && user.id !== 'guest') {
+        import('@/services/notifications').then((module) => {
+          if (user.notifications_enabled !== false) {
+            void module.registerForPushNotifications();
+          }
+          module.rescheduleSmartNotifications(user, personalizedPlanUnlocked);
+        });
+      }
+    }, [user?.id, personalizedPlanUnlocked])
   );
+
+  const loadNotificationSummary = async () => {
+    if (!user || user.id === 'guest') {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    try {
+      const response = await getNotificationInbox(10);
+      setUnreadNotificationCount(response.unread_count || 0);
+    } catch (error) {
+      console.error('Load notification summary error:', error);
+    }
+  };
 
   useEffect(() => {
     // Animate progress bar from 0 to healthScore
@@ -152,11 +182,14 @@ export default function HomeScreen() {
         setTimeout(() => reject(new Error('Timeout')), ms)
       );
 
+      let localTodayLog = null;
+
       try {
         // Load today's pain log với timeout 2s
         const todayLogPromise = getTodayPainLog();
         const todayLog = await Promise.race([todayLogPromise, timeout(2000)]) as any;
-        setTodayPainLog(todayLog?.data || null);
+        localTodayLog = todayLog?.data || null;
+        setTodayPainLog(localTodayLog);
         console.log('Home: Today pain log loaded');
       } catch (err) {
         console.log('Home: Today pain log timeout/error, skipping');
@@ -182,7 +215,7 @@ export default function HomeScreen() {
         const behavior = await Promise.race([behaviorPromise, timeout(2000)]) as any;
         if (behavior?.data) {
           setStreakDays(behavior.data.streak_days || 0);
-          calculateHealthScore(todayPainLog, behavior.data);
+          calculateHealthScore(localTodayLog, behavior.data);
           console.log('Home: User behavior loaded');
         } else {
           // Set default values
@@ -282,6 +315,7 @@ export default function HomeScreen() {
         symptoms: user.symptoms,
         surgery_history: user.surgery_history,
         preferred_time: user.preferred_time,
+        notifications_enabled: user.notifications_enabled,
         is_pro: user.is_pro || false,
       });
       
@@ -461,7 +495,7 @@ export default function HomeScreen() {
 
   const handleTryDevice = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const websiteUrl = 'https://theraease.vn';
+    const websiteUrl = 'https://therahome.vn';
     
     // Open website
     import('expo-linking').then(({ openURL }) => {
@@ -612,19 +646,39 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {streakDays > 0 && (
-          <Animated.View entering={FadeInDown.delay(200)}>
-            <LinearGradient
-              colors={['#F59E0B', '#D97706']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.streakBadge}
-            >
-              <Flame size={20} color="#FFF" />
-              <Text style={styles.streakText}>{streakDays} ngày</Text>
-            </LinearGradient>
-          </Animated.View>
-        )}
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/notifications');
+            }}
+            style={styles.notificationBellButton}
+          >
+            <Bell size={22} color={colors.text} />
+            {unreadNotificationCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {streakDays > 0 && (
+            <Animated.View entering={FadeInDown.delay(200)}>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.streakBadge}
+              >
+                <Flame size={20} color="#FFF" />
+                <Text style={styles.streakText}>{streakDays} ngày</Text>
+              </LinearGradient>
+            </Animated.View>
+          )}
+        </View>
       </Animated.View>
 
       {/* Health Score Card */}
@@ -736,6 +790,10 @@ export default function HomeScreen() {
           disabled={!personalizedPlanUnlocked}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push({
+              pathname: '/pain-input',
+              params: { redirectTo: '/recommendations' }
+            });
           }}
         >
           <LinearGradient
@@ -749,9 +807,16 @@ export default function HomeScreen() {
             ) : (
               <Lock size={24} color="#6B7280" strokeWidth={2.2} />
             )}
-            <Text style={personalizedPlanUnlocked ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
-              Cá nhân hoá lộ trình hôm nay
-            </Text>
+            <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Text style={personalizedPlanUnlocked ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
+                Cá nhân hoá lộ trình hôm nay
+              </Text>
+              {!personalizedPlanUnlocked && (
+                <Text style={{ fontSize: 11.5, color: '#6B7280', marginTop: 2, fontWeight: '500' }}>
+                  Mở khóa vào ngày 15 sau khi hoàn thành ngày 14
+                </Text>
+              )}
+            </View>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -784,8 +849,8 @@ export default function HomeScreen() {
           style={styles.tipCard}
         >
           <Text style={styles.tipEmoji}>💡</Text>
-          <Text style={styles.tipTitle}>Mẹo hôm nay</Text>
-          <Text style={styles.tipText}>{dailyTip}</Text>
+          <Text style={[styles.tipTitle, { color: '#78350F' }]}>Mẹo hôm nay</Text>
+          <Text style={[styles.tipText, { color: '#92400E' }]}>{dailyTip}</Text>
         </LinearGradient>
       </Animated.View>
 
@@ -798,8 +863,8 @@ export default function HomeScreen() {
           style={styles.tipCard}
         >
           <Text style={styles.tipEmoji}>🥗</Text>
-          <Text style={styles.tipTitle}>Dinh dưỡng hôm nay</Text>
-          <Text style={styles.tipText}>{dailyNutrition}</Text>
+          <Text style={[styles.tipTitle, { color: '#064E3B' }]}>Dinh dưỡng hôm nay</Text>
+          <Text style={[styles.tipText, { color: '#065F46' }]}>{dailyNutrition}</Text>
         </LinearGradient>
       </Animated.View>
 
@@ -1111,6 +1176,11 @@ const createStyles = (colors: any, isDark: boolean) =>
     alignItems: 'flex-start',
     marginBottom: 24,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   greeting: {
     fontSize: 16,
     color: colors.textSecondary,
@@ -1127,6 +1197,38 @@ const createStyles = (colors: any, isDark: boolean) =>
   },
   wavingEmoji: {
     fontSize: 32,
+  },
+  notificationBellButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#0F172A',
+    shadowOpacity: isDark ? 0.12 : 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 7,
+    right: 7,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   streakBadge: {
     flexDirection: 'row',

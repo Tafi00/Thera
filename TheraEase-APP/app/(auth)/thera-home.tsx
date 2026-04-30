@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions, ImageBackground } from 'react-native';
+import { View, StyleSheet, Dimensions, ImageBackground, TouchableOpacity } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useAuthStore } from '@/stores/authStore';
 import Animated, { FadeInUp, FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
@@ -18,6 +19,7 @@ const LABELS: any[] = [
 export default function TheraHomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user, setUser } = useAuthStore();
 
   const handleNext = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -35,22 +37,18 @@ export default function TheraHomeScreen() {
           {/* Header section */}
           <View style={styles.header}>
             <Animated.View entering={FadeInUp.duration(800)}>
-              <View style={styles.headerCard}>
-                <Text style={styles.title}>
-                  <Text style={styles.titleItalic}>Thera</Text>
-                  <Text style={styles.titleBlue}>HOME</Text>
-                  <Text style={styles.titleRest}> là sự lựa chọn{'\n'}hoàn hảo dành cho bạn</Text>
-                </Text>
-                <View style={styles.titleUnderline} />
-              </View>
+              <Text style={styles.title}>
+                <Text style={styles.titleItalic}>Thera</Text>
+                <Text style={styles.titleBlue}>HOME</Text>
+                <Text> là sự lựa chọn{'\n'}hoàn hảo dành cho bạn</Text>
+              </Text>
+              <View style={styles.titleUnderline} />
             </Animated.View>
-
+            
             <Animated.View entering={FadeInUp.delay(300).duration(800)}>
-              <View style={styles.subtitleCard}>
-                <Text style={styles.subtitle}>
-                  Cá nhân hóa lộ trình bằng AI theo bệnh lý của bạn
-                </Text>
-              </View>
+              <Text style={styles.subtitle}>
+                Cá nhân hóa lộ trình bằng AI theo bệnh lý của bạn
+              </Text>
             </Animated.View>
           </View>
 
@@ -84,6 +82,7 @@ export default function TheraHomeScreen() {
               contentStyle={styles.buttonContent}
               labelStyle={styles.buttonLabel}
               buttonColor="#3B82F6"
+              uppercase={false}
             >
               TIẾP TỤC
             </Button>
@@ -110,60 +109,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 20,
     alignItems: 'center',
-    gap: 12,
-  },
-  headerCard: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.84)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.72)',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 4,
   },
   title: {
     fontSize: 27,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 36,
+    lineHeight: 38,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   titleItalic: {
     fontStyle: 'italic',
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '400', // Light font weight for italics
   },
   titleBlue: {
     color: '#3B82F6',
-    fontWeight: '900',
-  },
-  titleRest: {
-    color: '#111827',
   },
   titleUnderline: {
     width: width * 0.7,
-    height: 2,
-    backgroundColor: 'rgba(59, 130, 246, 0.28)',
-    marginTop: 10,
-    alignSelf: 'center',
-  },
-  subtitleCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.76)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.66)',
+    height: 1.5,
+    backgroundColor: '#9CA3AF', // Gray color for the line
+    marginTop: 8,
+    opacity: 0.5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#374151',
+    color: '#F9FAFB',
     textAlign: 'center',
-    fontWeight: '600',
+    marginTop: 14,
+    fontWeight: '500',
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
   },
   labelsContainer: {
     flex: 1,
@@ -209,5 +188,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    lineHeight: 28,
   },
 });

@@ -62,7 +62,7 @@ export default function NameScreen() {
 
 							<Text style={styles.title}>Chúng tôi gọi bạn là gì?</Text>
 							<Text style={styles.subtitle}>
-								Hãy cho chúng tôi biết tên của bạn để TheraHOME có thể cá nhân
+								Hãy cho chúng tôi biết tên của bạn để TheraHome có thể cá nhân
 								hóa trải nghiệm của bạn.
 							</Text>
 						</MotiView>
@@ -118,6 +118,7 @@ export default function NameScreen() {
 								contentStyle={styles.buttonContent}
 								labelStyle={styles.buttonLabel}
 								buttonColor={colors.primary}
+								uppercase={false}
 							>
 								BẮT ĐẦU NGAY
 							</Button>
@@ -245,5 +246,6 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: "800",
 		letterSpacing: 1,
+		lineHeight: 26,
 	},
 });

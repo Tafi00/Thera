@@ -16,11 +16,15 @@ import {
 	Accessibility,
 	Key,
 	MessageSquare,
+	Star,
 	Film,
+	Package,
 	LogOut,
 	Menu,
 	X,
 	QrCode,
+	Library,
+	Bell,
 } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -32,11 +36,16 @@ const menuItems = [
 	{ icon: Smartphone, label: "Thiết bị", href: "/admin/devices" },
 	{ icon: Brain, label: "AI Prompts", href: "/admin/ai-prompts" },
 	{ icon: BookOpen, label: "Knowledge Base", href: "/admin/knowledge" },
+	{ icon: Library, label: "Thư viện", href: "/admin/library" },
 	{ icon: Accessibility, label: "Tư thế", href: "/admin/postures" },
 	{ icon: MessageSquare, label: "Motivation", href: "/admin/motivations" },
+	{ icon: Bell, label: "Thông báo", href: "/admin/notifications" },
 	{ icon: Film, label: "Videos", href: "/admin/videos" },
+	{ icon: Film, label: "Videos Cá Nhân", href: "/admin/personalized-videos" },
 	// { icon: Key, label: 'Activation Codes', href: '/admin/codes' },
 	{ icon: QrCode, label: "Mã Sản Phẩm", href: "/admin/product-instances" },
+	{ icon: Package, label: "Sản Phẩm", href: "/admin/products" },
+	{ icon: Star, label: "Đánh Giá", href: "/admin/product-reviews" },
 ];
 
 export default function AdminLayout({
@@ -103,7 +112,7 @@ export default function AdminLayout({
 						<div className="flex items-center">
 							<Image
 								src="/logo.png"
-								alt="TheraHOME"
+								alt="TheraHome"
 								width={80}
 								height={80}
 								className="object-contain"

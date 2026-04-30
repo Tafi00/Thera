@@ -36,7 +36,7 @@ const CATEGORY_ORDER = [
 	"Ngồi, nghỉ",
 	"Dùng điện thoại",
 	"Lái xe",
-	"Bế vác",
+	"Bê vác",
 ];
 
 export default function PostureScreen() {

@@ -19,14 +19,14 @@ export default function TermsScreen() {
 				style={styles.content}
 				contentContainerStyle={styles.contentContainer}
 			>
-				<Text style={styles.title}>Điều khoản sử dụng TheraHOME</Text>
+				<Text style={styles.title}>Điều khoản sử dụng TheraHome</Text>
 				<Text style={styles.date}>
 					Cập nhật lần cuối: {new Date().toLocaleDateString("vi-VN")}
 				</Text>
 
 				<Text style={styles.sectionTitle}>1. Chấp nhận điều khoản</Text>
 				<Text style={styles.paragraph}>
-					Bằng việc tải xuống, cài đặt và sử dụng ứng dụng TheraHOME, bạn đồng ý
+					Bằng việc tải xuống, cài đặt và sử dụng ứng dụng TheraHome, bạn đồng ý
 					tuân thủ và bị ràng buộc bởi các điều khoản và điều kiện sau đây. Nếu
 					bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng
 					không sử dụng ứng dụng.
@@ -34,7 +34,7 @@ export default function TermsScreen() {
 
 				<Text style={styles.sectionTitle}>2. Mục đích sử dụng</Text>
 				<Text style={styles.paragraph}>
-					TheraHOME là ứng dụng hỗ trợ giảm đau cổ và lưng thông qua các bài tập
+					TheraHome là ứng dụng hỗ trợ giảm đau cổ và lưng thông qua các bài tập
 					vật lý cải thiện với AI. Ứng dụng KHÔNG thay thế cho việc khám và điều
 					trị y tế chuyên nghiệp.
 				</Text>
@@ -50,7 +50,7 @@ export default function TermsScreen() {
 
 				<Text style={styles.sectionTitle}>4. Giới hạn trách nhiệm</Text>
 				<Text style={styles.paragraph}>
-					TheraHOME và các nhà phát triển KHÔNG chịu trách nhiệm về:{"\n"}• Bất
+					TheraHome và các nhà phát triển KHÔNG chịu trách nhiệm về:{"\n"}• Bất
 					kỳ chấn thương hoặc tổn hại nào phát sinh từ việc sử dụng ứng dụng
 					{"\n"}• Kết quả điều trị hoặc hiệu quả của các bài tập{"\n"}• Bất kỳ
 					quyết định y tế nào dựa trên thông tin từ ứng dụng
@@ -59,7 +59,7 @@ export default function TermsScreen() {
 				<Text style={styles.sectionTitle}>5. Quyền sở hữu trí tuệ</Text>
 				<Text style={styles.paragraph}>
 					Tất cả nội dung, thiết kế, logo, và tài liệu trong ứng dụng thuộc
-					quyền sở hữu của TheraHOME Vietnam. Bạn không được sao chép, phân phối
+					quyền sở hữu của TheraHome Vietnam. Bạn không được sao chép, phân phối
 					hoặc sử dụng cho mục đích thương mại mà không có sự cho phép bằng văn
 					bản.
 				</Text>
@@ -92,11 +92,11 @@ export default function TermsScreen() {
 					Email: Bacsilong1974@gmail.com{"\n"}
 					Điện thoại: 0364.263.552{"\n"}
 					Địa chỉ: 234 Phạm Văn Đồng, Hà Nội{"\n"}
-					Website: https://theraease.vn
+					Website: https://therahome.vn
 				</Text>
 
 				<Text style={styles.footer}>
-					Bằng việc sử dụng TheraHOME, bạn xác nhận rằng bạn đã đọc, hiểu và
+					Bằng việc sử dụng TheraHome, bạn xác nhận rằng bạn đã đọc, hiểu và
 					đồng ý với các Điều khoản sử dụng này.
 				</Text>
 			</ScrollView>

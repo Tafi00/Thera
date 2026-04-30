@@ -3,7 +3,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 class ApiClient {
   private getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('theraease_token');
+    return localStorage.getItem('therahome_token');
   }
 
   private getHeaders(): HeadersInit {
@@ -66,21 +66,21 @@ class ApiClient {
 
   // Auth helpers
   setToken(token: string) {
-    localStorage.setItem('theraease_token', token);
+    localStorage.setItem('therahome_token', token);
   }
 
   clearToken() {
-    localStorage.removeItem('theraease_token');
-    localStorage.removeItem('theraease_user');
+    localStorage.removeItem('therahome_token');
+    localStorage.removeItem('therahome_user');
   }
 
   setUser(user: any) {
-    localStorage.setItem('theraease_user', JSON.stringify(user));
+    localStorage.setItem('therahome_user', JSON.stringify(user));
   }
 
   getUser() {
     if (typeof window === 'undefined') return null;
-    const user = localStorage.getItem('theraease_user');
+    const user = localStorage.getItem('therahome_user');
     return user ? JSON.parse(user) : null;
   }
 

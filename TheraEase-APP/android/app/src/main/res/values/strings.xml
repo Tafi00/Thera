@@ -2,6 +2,4 @@
   <string name="app_name">TheraHome</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
-  <string name="facebook_app_id">34694532530194658</string>
-  <string name="fb_login_protocol_scheme">fb34694532530194658</string>
 </resources>

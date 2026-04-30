@@ -37,6 +37,13 @@ interface Message {
 	created_at: string;
 }
 
+const SUGGESTIONS = [
+	"Tôi đang đau mỏi cổ- vai",
+	"Tôi đau lan tê cả tay",
+	"Tôi cảm thấy đau đầu",
+	"Hướng dẫn tôi sử dụng TheraNECK"
+];
+
 export default function ChatScreen() {
 	const { user } = useAuthStore();
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -52,7 +59,7 @@ export default function ChatScreen() {
 		if (!user) return;
 
 		try {
-			const data = await api.get("/misc/chat-history");
+			const data = await api.get("/chat-history");
 			if (data) setMessages(data);
 		} catch (error) {
 			console.error("Load chat history error:", error);
@@ -66,7 +73,7 @@ export default function ChatScreen() {
 		if (!user) return;
 
 		try {
-			const data = await api.post("/misc/chat-history", {
+			const data = await api.post("/chat-history", {
 				role,
 				message: content,
 			});
@@ -222,9 +229,21 @@ export default function ChatScreen() {
 								</LinearGradient>
 								<Text style={styles.emptyTitle}>Xin chào! 👋</Text>
 								<Text style={styles.emptyText}>
-									Tôi là trợ lý AI của TheraHOME.{"\n"}
-									Hãy hỏi tôi về tình trạng đau hoặc bài tập phù hợp nhé!
+									Ông chủ đang khó chịu ở đâu? Tôi có thể giúp gì không?
 								</Text>
+								
+								<View style={styles.suggestionsWrapper}>
+									{SUGGESTIONS.map((suggestion, index) => (
+										<TouchableOpacity 
+											key={index}
+											style={styles.suggestionChip}
+											onPress={() => setInputText(suggestion)}
+											activeOpacity={0.7}
+										>
+											<Text style={styles.suggestionText}>{suggestion}</Text>
+										</TouchableOpacity>
+									))}
+								</View>
 							</Animated.View>
 						) : (
 							messages.map((msg, idx) => renderMessage(msg, idx))
@@ -265,6 +284,8 @@ export default function ChatScreen() {
 								disabled={loading}
 								outlineColor="transparent"
 								activeOutlineColor={colors.primary}
+								placeholderTextColor="#9CA3AF"
+								textColor={colors.text}
 							/>
 							<TouchableOpacity
 								onPress={() => {
@@ -368,6 +389,32 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		lineHeight: 24,
 		paddingHorizontal: 32,
+	},
+	suggestionsWrapper: {
+		marginTop: 32,
+		width: '100%',
+		gap: 12,
+		paddingHorizontal: 20,
+	},
+	suggestionChip: {
+		backgroundColor: '#FFFFFF',
+		paddingVertical: 12,
+		paddingHorizontal: 16,
+		borderRadius: 16,
+		borderWidth: 1,
+		borderColor: '#E5E7EB',
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.05,
+		shadowRadius: 4,
+		elevation: 2,
+		alignItems: 'center',
+	},
+	suggestionText: {
+		fontSize: 15,
+		color: '#4B5563',
+		fontWeight: '500',
+		textAlign: 'center',
 	},
 	messageRow: {
 		flexDirection: "row",

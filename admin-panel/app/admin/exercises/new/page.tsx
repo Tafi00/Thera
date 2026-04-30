@@ -14,7 +14,6 @@ export default function NewExercisePage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    video_url: '',
     thumbnail_url: '',
     calories: 50,
     difficulty: 'easy',
@@ -25,6 +24,12 @@ export default function NewExercisePage() {
     benefits: '',
     variations: '',
     is_pro: false,
+    video_urls_by_pain: {
+      no_pain: '',
+      mild: '',
+      moderate: '',
+      severe: '',
+    },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,10 +59,23 @@ export default function NewExercisePage() {
         }
       }
 
+      const painVideos = formData.video_urls_by_pain;
+      const hasMissingPainVideo = Object.values(painVideos).some((url) => !url.trim());
+
+      if (hasMissingPainVideo) {
+        showError('Vui lòng nhập đủ 4 link video theo mức đau');
+        setLoading(false);
+        return;
+      }
+
+      const fallbackVideoUrl =
+        painVideos.mild || painVideos.moderate || painVideos.severe || painVideos.no_pain;
+
       await api.post('/exercises', {
         title: formData.title,
         description: formData.description,
-        video_url: formData.video_url,
+        video_url: fallbackVideoUrl,
+        video_urls_by_pain: painVideos,
         thumbnail_url: formData.thumbnail_url,
         calories: formData.calories,
         difficulty: formData.difficulty,
@@ -123,19 +141,80 @@ export default function NewExercisePage() {
               />
             </div>
 
-            {/* Video URL */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Video URL (YouTube) *
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                Link video theo mức đau *
               </label>
-              <input
-                type="url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                className="input"
-                placeholder="https://www.youtube.com/watch?v=..."
-                required
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Không đau</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.no_pain}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        no_pain: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau nhẹ (ấm ấm)</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.mild}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        mild: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau vừa (khó chịu)</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.moderate}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        moderate: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-600 mb-2">Đau nặng/Tê</label>
+                  <input
+                    type="url"
+                    value={formData.video_urls_by_pain.severe}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      video_urls_by_pain: {
+                        ...formData.video_urls_by_pain,
+                        severe: e.target.value,
+                      },
+                    })}
+                    className="input"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Thumbnail */}
@@ -158,23 +237,6 @@ export default function NewExercisePage() {
                 className="input"
                 min="0"
               />
-            </div>
-
-            {/* Difficulty */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Độ khó *
-              </label>
-              <select
-                value={formData.difficulty}
-                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                className="input"
-                required
-              >
-                <option value="easy">Dễ</option>
-                <option value="medium">Trung bình</option>
-                <option value="hard">Khó</option>
-              </select>
             </div>
 
             {/* Category */}

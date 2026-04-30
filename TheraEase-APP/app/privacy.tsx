@@ -19,13 +19,13 @@ export default function PrivacyScreen() {
 				style={styles.content}
 				contentContainerStyle={styles.contentContainer}
 			>
-				<Text style={styles.title}>Chính sách bảo mật TheraHOME</Text>
+				<Text style={styles.title}>Chính sách bảo mật TheraHome</Text>
 				<Text style={styles.date}>
 					Cập nhật lần cuối: {new Date().toLocaleDateString("vi-VN")}
 				</Text>
 
 				<Text style={styles.intro}>
-					TheraHOME cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn.
+					TheraHome cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn.
 					Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ
 					thông tin của bạn.
 				</Text>
@@ -126,11 +126,11 @@ export default function PrivacyScreen() {
 					Email: Bacsilong1974@gmail.com{"\n"}
 					Điện thoại: 0364.263.552{"\n"}
 					Địa chỉ: 234 Phạm Văn Đồng, Thành phố Hà Nội{"\n"}
-					Website: https://theraease.vn
+					Website: https://therahome.vn
 				</Text>
 
 				<Text style={styles.footer}>
-					Bằng việc sử dụng TheraHOME, bạn xác nhận rằng bạn đã đọc và hiểu
+					Bằng việc sử dụng TheraHome, bạn xác nhận rằng bạn đã đọc và hiểu
 					Chính sách bảo mật này và đồng ý với việc thu thập và sử dụng thông
 					tin như được mô tả.
 				</Text>

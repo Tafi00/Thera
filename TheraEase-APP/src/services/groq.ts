@@ -22,7 +22,7 @@ async function getSystemPrompt(promptType: string): Promise<{
 
 	// Default fallback
 	return {
-		system_prompt: "Bạn là trợ lý sức khỏe AI của TheraHOME.",
+		system_prompt: "Bạn là trợ lý sức khỏe AI của TheraHome.",
 		model: "llama-3.3-70b-versatile",
 		temperature: 0.7,
 		max_tokens: 1000,
@@ -66,11 +66,47 @@ async function callGroq(
 // Get AI exercise recommendations
 export async function getExerciseRecommendations(userContext: {
 	pain_areas?: string[];
+	pain_level?: number;
 	behavior?: any;
 	recent_logs?: any[];
+	available_exercises?: any[];
 }) {
 	const config = await getSystemPrompt("recommendation");
-	const message = `Người dùng có các vấn đề: ${JSON.stringify(userContext)}. Hãy gợi ý bài tập phù hợp.`;
+	
+	const contextWithoutExercises = {
+		pain_areas: userContext.pain_areas,
+		pain_level: userContext.pain_level,
+		behavior: userContext.behavior,
+		recent_logs: userContext.recent_logs
+	};
+	
+	const exercisesList = (userContext.available_exercises || []).map((ex: any) => ({
+		id: ex.id || ex._id,
+		title: ex.title,
+		category: ex.category,
+		difficulty: ex.difficulty,
+		available_video_levels: Object.entries(ex.video_urls_by_pain || {})
+			.filter(([, url]) => typeof url === 'string' && url.trim() !== '')
+			.map(([level]) => level),
+	}));
+
+	const message = `Người dùng có các vấn đề: ${JSON.stringify(contextWithoutExercises)}.
+    
+Dưới đây là danh sách các bài tập hiện có trên hệ thống: 
+${JSON.stringify(exercisesList)}
+
+Từ danh sách bài tập trên, hãy chọn những bài tập phù hợp nhất (tối đa 5 bài) để hỗ trợ giảm đau và phục hồi.
+Hãy phân tích mức đau hiện tại để ưu tiên độ khó phù hợp:
+- Không đau: có thể ưu tiên medium, sau đó easy hoặc hard
+- Đau nhẹ: ưu tiên easy, sau đó medium
+- Đau vừa: ưu tiên easy, hạn chế hard
+- Đau nặng/Tê: chỉ ưu tiên bài thật nhẹ, an toàn và tránh hard
+Chỉ chọn bài có video phù hợp với mức đau hiện tại nếu có.
+BẮT BUỘC TRẢ VỀ CHÍNH XÁC cấu trúc JSON mảng như sau (KHÔNG giải thích, KHÔNG chứa markdown):
+[
+  { "exercise_id": "id_bài_tập_từ_danh_sách" }
+]`;
+
 	return callGroq(
 		config.system_prompt,
 		message,
@@ -140,17 +176,6 @@ export async function chatWithAssistant(
 			data.choices?.[0]?.message?.content ||
 			"Xin lỗi, tôi không thể trả lời lúc này.";
 
-		// Save to chat history
-		try {
-			await api.post("/misc/chat-history", { message, role: "user" });
-			await api.post("/misc/chat-history", {
-				message: reply,
-				role: "assistant",
-			});
-		} catch (e) {
-			console.warn("Save chat history failed:", e);
-		}
-
 		return reply;
 	} catch (error) {
 		console.error("Chat error:", error);
@@ -161,7 +186,7 @@ export async function chatWithAssistant(
 // Get chat history
 export async function getChatHistory(limit = 50) {
 	try {
-		return await api.get(`/misc/chat-history?limit=${limit}`);
+		return await api.get(`/chat-history?limit=${limit}`);
 	} catch (error) {
 		console.error("Get chat history error:", error);
 		return [];
