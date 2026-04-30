@@ -16,7 +16,8 @@ export default {
     ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "vn.therahome.app"
+      bundleIdentifier: "vn.therahome.app",
+      buildNumber: "1"
     },
     android: {
       adaptiveIcon: {
@@ -24,6 +25,7 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "vn.therahome.app",
+      versionCode: 1,
       permissions: [
         "CAMERA",
         "NOTIFICATIONS"
