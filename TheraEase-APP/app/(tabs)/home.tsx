@@ -33,7 +33,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getNotificationInbox } from '@/services/notificationInbox';
 
 const { width } = Dimensions.get('window');
-const PERSONALIZED_PLAN_PREVIEW_BYPASS = true;
 
 // Waving Hand Animation Component
 const WavingHand = ({ textStyle }: { textStyle: any }) => {
@@ -89,14 +88,14 @@ export default function HomeScreen() {
   const scoreNumber = useSharedValue(0);
 
   const personalizedPlanUnlocked = useMemo(() => {
+    // nếu Bypassed thì comment dòng 90-93
     if (!user?.personalized_plan_completed_at) return false;
     if (!user?.personalized_plan_unlock_at) return false;
     const unlockAt = new Date(user.personalized_plan_unlock_at).getTime();
     if (Number.isNaN(unlockAt)) return false;
     return Date.now() >= unlockAt;
+    // return true; // Bypassed for testing
   }, [user?.personalized_plan_completed_at, user?.personalized_plan_unlock_at]);
-
-  const personalizedPlanAccessible = personalizedPlanUnlocked || PERSONALIZED_PLAN_PREVIEW_BYPASS;
 
   const motivationMessages = [
     'Tiếp tục cố gắng!',
@@ -787,8 +786,8 @@ export default function HomeScreen() {
       {/* CTA Button - Bắt đầu quá trình */}
       <Animated.View entering={FadeInDown.delay(500)}>
         <TouchableOpacity
-          activeOpacity={personalizedPlanAccessible ? 0.85 : 1}
-          disabled={!personalizedPlanAccessible}
+          activeOpacity={personalizedPlanUnlocked ? 0.85 : 1}
+          disabled={!personalizedPlanUnlocked}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push({
@@ -798,21 +797,21 @@ export default function HomeScreen() {
           }}
         >
           <LinearGradient
-            colors={personalizedPlanAccessible ? ['#5B9BD5', '#4A7FB8'] : ['#A7C4E4', '#8FAFD3']}
+            colors={personalizedPlanUnlocked ? ['#5B9BD5', '#4A7FB8'] : ['#A7C4E4', '#8FAFD3']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaButton}
           >
-            {personalizedPlanAccessible ? (
+            {personalizedPlanUnlocked ? (
               <Target size={24} color="#FFFFFF" strokeWidth={2.5} />
             ) : (
               <Lock size={24} color="#6B7280" strokeWidth={2.2} />
             )}
             <View style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Text style={personalizedPlanAccessible ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
+              <Text style={personalizedPlanUnlocked ? styles.ctaButtonText : styles.ctaButtonTextDisabled}>
                 Cá nhân hoá lộ trình hôm nay
               </Text>
-              {!personalizedPlanAccessible && (
+              {!personalizedPlanUnlocked && (
                 <Text style={{ fontSize: 11.5, color: '#6B7280', marginTop: 2, fontWeight: '500' }}>
                   Mở khóa vào ngày 15 sau khi hoàn thành ngày 14
                 </Text>
