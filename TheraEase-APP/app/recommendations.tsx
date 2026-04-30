@@ -104,6 +104,11 @@ export default function RecommendationsScreen() {
     setActiveIndex(null);
   };
 
+  const handleVideoComplete = () => {
+    setActiveIndex(null);
+    router.push('/daily-recommendations');
+  };
+
   const handleNextVideo = () => {
     setActiveIndex((current) => {
       if (current === null || current >= videos.length - 1) return current;
@@ -225,7 +230,7 @@ export default function RecommendationsScreen() {
             style={styles.button}
             contentStyle={styles.buttonContent}
           >
-            Bắt đầu lộ trình video
+            Bắt đầu tập luyện
           </Button>
           <Button
             mode="outlined"
@@ -252,7 +257,7 @@ export default function RecommendationsScreen() {
             onClose={closeVideo}
             onNext={handleNextVideo}
             onPrevious={handlePreviousVideo}
-            onComplete={closeVideo}
+            onComplete={handleVideoComplete}
           />
         ) : null}
       </Modal>

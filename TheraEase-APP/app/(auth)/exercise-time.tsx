@@ -6,6 +6,8 @@ import {
 	TouchableOpacity,
 	Alert,
 	ScrollView,
+	Platform,
+	Modal,
 } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,7 +23,10 @@ import {
 	Bell,
 	CircleCheckBig,
 	Info,
+	Clock,
 } from "lucide-react-native";
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { updateProfile } from "@/services/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { colors } from "@/utils/theme";
 
@@ -57,11 +62,35 @@ export default function ExerciseTimeScreen() {
 	const params = useLocalSearchParams();
 	const { user, setUser } = useAuthStore();
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [morningTime, setMorningTime] = useState(new Date(new Date().setHours(8, 0, 0, 0)));
+	const [eveningTime, setEveningTime] = useState(new Date(new Date().setHours(20, 5, 0, 0)));
+	const [showPickerFor, setShowPickerFor] = useState<"morning" | "evening" | null>(null);
+
+	const formatTime = (date: Date) => {
+		const h = date.getHours().toString().padStart(2, '0');
+		const m = date.getMinutes().toString().padStart(2, '0');
+		return `${h}:${m}`;
+	};
+
+	const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+		const pickerFor = showPickerFor;
+		if (Platform.OS === 'android') {
+			setShowPickerFor(null);
+		}
+		
+		if (selectedDate && pickerFor) {
+			if (pickerFor === "morning") {
+				setMorningTime(selectedDate);
+			} else {
+				setEveningTime(selectedDate);
+			}
+		}
+	};
 
 	const getPreferredTimeValue = (value: string) => {
-		if (value === "morning") return "08:00";
-		if (value === "both") return "08:00,20:00";
-		return "20:00";
+		if (value === "morning") return formatTime(morningTime);
+		if (value === "both") return `${formatTime(morningTime)},${formatTime(eveningTime)}`;
+		return formatTime(eveningTime);
 	};
 
 	const requestNotificationPermission = async () => {
@@ -86,10 +115,18 @@ export default function ExerciseTimeScreen() {
 		await requestNotificationPermission();
 
 		if (user) {
+			const preferredTime = getPreferredTimeValue(selectedId);
 			setUser({
 				...user,
-				preferred_time: getPreferredTimeValue(selectedId),
+				preferred_time: preferredTime,
 			});
+			if (user.id !== "guest") {
+				try {
+					await updateProfile({ preferred_time: preferredTime });
+				} catch (error) {
+					console.error("Lỗi lưu thời gian vào database:", error);
+				}
+			}
 		}
 
 		router.replace({
@@ -212,22 +249,57 @@ export default function ExerciseTimeScreen() {
 						})}
 					</View>
 
-					{/* {selectedId && (
+					{selectedId && (
 						<MotiView
 							from={{ opacity: 0, translateY: 20 }}
 							animate={{ opacity: 1, translateY: 0 }}
 							style={styles.timeSection}
 						>
 							<View style={styles.timeCard}>
+								<View style={styles.timeHeader}>
+									<Clock size={18} color="#6B7280" />
+									<Text style={styles.timeHeaderTitle}>Giờ nhắc nhở tập luyện</Text>
+								</View>
+
+								{selectedId === "both" ? (
+									<>
+										<View style={styles.timeDisplayRow}>
+											<Text style={styles.timeValueText}>{formatTime(morningTime)}</Text>
+											<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor("morning")}>
+												<Text style={styles.changeTimeText}>Đổi (Sáng)</Text>
+											</TouchableOpacity>
+										</View>
+										<View style={styles.timeDisplayRow}>
+											<Text style={styles.timeValueText}>{formatTime(eveningTime)}</Text>
+											<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor("evening")}>
+												<Text style={styles.changeTimeText}>Đổi (Tối)</Text>
+											</TouchableOpacity>
+										</View>
+									</>
+								) : (
+									<View style={styles.timeDisplayRow}>
+										<Text style={styles.timeValueText}>
+											{selectedId === "morning" ? formatTime(morningTime) : formatTime(eveningTime)}
+										</Text>
+										<TouchableOpacity activeOpacity={0.7} onPress={() => setShowPickerFor(selectedId as "morning" | "evening")}>
+											<Text style={styles.changeTimeText}>Thay đổi</Text>
+										</TouchableOpacity>
+									</View>
+								)}
+
 								<View style={styles.recommendationBox}>
-									<Info size={16} color="#4F46E5" />
+									<Info size={16} color="#4F46E5" style={{ marginTop: 2 }} />
 									<Text style={styles.recommendationText}>
-										Bạn vẫn có thể bật hoặc tắt thông báo trong phần cài đặt sau này. Khung giờ gửi sẽ được quản trị viên cấu hình chung cho toàn hệ thống.
+										{selectedId === "morning"
+											? "Khuyên dùng: Luyện tập vào 07:00 - 09:00 giúp bắt đầu ngày mới tràn đầy năng lượng."
+											: selectedId === "evening"
+											? "Khuyên dùng: Luyện tập vào 20:00 - 22:00 giúp cơ thể phục hồi tốt nhất trước khi ngủ."
+											: "Khuyên dùng: Luyện tập đều đặn vào 2 buổi sẽ giúp tối ưu hiệu quả và nhanh chóng phục hồi."}
 									</Text>
 								</View>
 							</View>
 						</MotiView>
-					)} */}
+					)}
 
 						<MotiView
 							from={{ opacity: 0, translateY: 20 }}
@@ -251,6 +323,39 @@ export default function ExerciseTimeScreen() {
 					</View>
 				</ScrollView>
 			</SafeAreaView>
+
+			{showPickerFor && Platform.OS === 'android' && (
+				<DateTimePicker
+					value={showPickerFor === "morning" ? morningTime : eveningTime}
+					mode="time"
+					is24Hour={true}
+					display="default"
+					onChange={onTimeChange}
+				/>
+			)}
+
+			{Platform.OS === 'ios' && (
+				<Modal visible={!!showPickerFor} transparent={true} animationType="slide">
+					<View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+						<View style={{ backgroundColor: 'white', paddingBottom: 20 }}>
+							<View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }}>
+								<TouchableOpacity onPress={() => setShowPickerFor(null)}>
+									<Text style={{ color: '#007AFF', fontSize: 18, fontWeight: '600' }}>Xong</Text>
+								</TouchableOpacity>
+							</View>
+							{!!showPickerFor && (
+								<DateTimePicker
+									value={showPickerFor === "morning" ? morningTime : eveningTime}
+									mode="time"
+									is24Hour={true}
+									display="spinner"
+									onChange={onTimeChange}
+								/>
+							)}
+						</View>
+					</View>
+				</Modal>
+			)}
 		</View>
 	);
 }
@@ -365,6 +470,39 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.1,
 		shadowRadius: 20,
 		elevation: 5,
+	},
+	timeHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	timeHeaderTitle: {
+		fontSize: 15,
+		fontWeight: "600",
+		color: "#4B5563",
+		marginLeft: 8,
+	},
+	timeDisplayRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingVertical: 14,
+		paddingHorizontal: 16,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 16,
+		marginBottom: 16,
+		borderWidth: 1,
+		borderColor: "#F3F4F6",
+	},
+	timeValueText: {
+		fontSize: 34,
+		fontWeight: "700",
+		color: "#3BA1E3",
+	},
+	changeTimeText: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#6B7280",
 	},
 	recommendationBox: {
 		flexDirection: "row",

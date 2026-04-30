@@ -202,7 +202,7 @@ export default function WorkoutSequenceScreen() {
       }
     }
     
-    router.back();
+    router.push('/daily-recommendations');
   };
 
   const handleVideoEnd = () => {
