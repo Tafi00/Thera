@@ -123,7 +123,7 @@ export default function DeviceOfferScreen() {
 				<View style={styles.productContainer}>
 					<Animated.View entering={ZoomIn.delay(300).duration(600)}>
 						<Image
-							source={require("../../assets/Ảnh SP TheraNECK.png")}
+							source={require('../../assets/anh-sp-theraneck.png')}
 							style={styles.productImage}
 							resizeMode="contain"
 						/>

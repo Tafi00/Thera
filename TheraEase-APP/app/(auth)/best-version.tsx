@@ -19,7 +19,7 @@ export default function BestVersionScreen() {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require('../../assets/Bạn có muốn 2026.png')}
+        source={require('../../assets/ban-co-muon-2026.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >

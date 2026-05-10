@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
 				<View style={styles.avatarContainer}>
 					<Animated.Image
 						entering={ZoomIn.duration(800).springify()}
-						source={require('../../assets/Xin chao tôi là trợ lí.png')}
+						source={require('../../assets/xin-chao-tro-li.png')}
 						style={styles.avatar}
 					/>
 				</View>

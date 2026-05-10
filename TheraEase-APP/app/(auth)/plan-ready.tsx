@@ -120,7 +120,7 @@ export default function PlanReadyScreen() {
                 <View style={styles.topRightImage}>
                    <View style={styles.planIllustrationCard}>
                       <Image
-                        source={require('../../assets/Lấy lộ trình.png')}
+                        source={require('../../assets/lay-lo-trinh.png')}
                         style={styles.planIllustrationImage}
                         resizeMode="contain"
                       />

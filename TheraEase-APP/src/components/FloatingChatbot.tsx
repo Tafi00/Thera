@@ -33,7 +33,7 @@ import { colors } from "@/utils/theme";
 const { width, height } = Dimensions.get("window");
 const BUTTON_SIZE = 60;
 const EDGE_PADDING = 20;
-const CHATBOT_AVATAR = require("../../assets/Xin chao tôi là trợ lí.png");
+const CHATBOT_AVATAR = require('../../assets/xin-chao-tro-li.png');
 
 interface Message {
 	id: string;
