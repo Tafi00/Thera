@@ -57,7 +57,7 @@ export default {
     scheme: "therahome",
     extra: {
       eas: {
-        projectId: "your-project-id"
+        projectId: "f5acbc19-9567-4d18-b661-0cc17010582f"
       }
     }
   }
