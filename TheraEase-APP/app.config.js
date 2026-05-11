@@ -15,11 +15,10 @@ export default {
       "**/*"
     ],
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "vn.therahome.app",
-      buildNumber: "2",
+      buildNumber: "4",
       infoPlist: {
-        NSUserTrackingUsageDescription: "Ứng dụng cần quyền này để cải thiện trải nghiệm của bạn",
         LSApplicationQueriesSchemes: ["https", "http"]
       }
     },
