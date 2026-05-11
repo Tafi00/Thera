@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "TheraHome",
     slug: "therahome-app",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -17,7 +17,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "vn.therahome.app",
-      buildNumber: "1",
+      buildNumber: "2",
       infoPlist: {
         NSUserTrackingUsageDescription: "Ứng dụng cần quyền này để cải thiện trải nghiệm của bạn",
         LSApplicationQueriesSchemes: ["https", "http"]
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#ffffff"
       },
       package: "vn.therahome.app",
-      versionCode: 1,
+      versionCode: 2,
       permissions: [
         "CAMERA",
         "NOTIFICATIONS"
