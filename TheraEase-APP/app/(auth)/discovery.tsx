@@ -1,13 +1,10 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, Image, ScrollView, useWindowDimensions } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp, FadeInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay, Easing } from 'react-native-reanimated';
-
-const { width } = Dimensions.get('window');
-const GRAPHIC_SIZE = Math.min(width * 0.84, 320);
 
 type DiscoveryPortrait = {
   id: string;
@@ -125,9 +122,24 @@ const DISCOVERY_PORTRAITS: DiscoveryPortrait[] = [
 
 export default function DiscoveryScreen() {
   const router = useRouter();
-  const clusterSize = GRAPHIC_SIZE;
-  const gap = 50; // Spacing between the end of one cluster and the start of the next
+  const { width, height } = useWindowDimensions();
+  const isCompactHeight = height < 760;
+  const isMediumHeight = height < 900;
+  const isWideLayout = width >= 768;
+  const horizontalPadding = Math.min(Math.max(width * 0.07, 24), 72);
+  const contentMaxWidth = Math.min(Math.max(width - horizontalPadding * 2, 240), 620);
+  const clusterSize = Math.min(
+    contentMaxWidth * (isWideLayout ? 0.76 : 0.84),
+    isCompactHeight ? 232 : isMediumHeight ? 260 : 300
+  );
+  const clusterHeight = clusterSize * 0.92;
+  const gap = Math.min(Math.max(clusterSize * 0.14, 28), 44);
   const repeatWidth = clusterSize + gap;
+  const marqueeInset = Math.max((contentMaxWidth - clusterSize) / 2, 0);
+  const titleFontSize = isCompactHeight ? 22 : isWideLayout ? 26 : 24;
+  const titleLineHeight = isCompactHeight ? 30 : isWideLayout ? 34 : 32;
+  const descriptionFontSize = isCompactHeight ? 15 : isWideLayout ? 18 : 17;
+  const descriptionLineHeight = isCompactHeight ? 22 : isWideLayout ? 27 : 25;
   const translateX = useSharedValue(0);
 
   useEffect(() => {
@@ -137,13 +149,12 @@ export default function DiscoveryScreen() {
       -1,
       false
     );
-  }, []);
+  }, [repeatWidth, translateX]);
 
   const marqueeStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: translateX.value }],
       flexDirection: 'row',
-      width: repeatWidth * 2, // Holds two identical clusters side-by-side
     };
   });
 
@@ -175,7 +186,7 @@ export default function DiscoveryScreen() {
       // Calculate a slight variance in animation duration for a natural effect
       const duration = 2000 + (delay % 500);
       const distance = prominent ? -12 : -7;
-      
+
       floatY.value = withDelay(
         delay,
         withRepeat(
@@ -194,11 +205,11 @@ export default function DiscoveryScreen() {
     }));
 
     return (
-      <Animated.View 
+      <Animated.View
         entering={ZoomIn.delay(delay).duration(600).springify()}
         style={{ position: 'absolute', top, left, width: size, height: size }}
       >
-        <Animated.View 
+        <Animated.View
           style={[
             styles.avatarCircle,
             {
@@ -213,7 +224,7 @@ export default function DiscoveryScreen() {
               shadowRadius: prominent ? 18 : 12,
               elevation: prominent ? 10 : 4,
             },
-            floatAnimatedStyle
+            floatAnimatedStyle,
           ]}
         >
           <Image
@@ -228,7 +239,7 @@ export default function DiscoveryScreen() {
 
   // Extract cluster into a component to duplicate it easily for the marquee
   const ClusterView = () => (
-    <View style={[styles.portraitCluster, { width: clusterSize, height: clusterSize * 0.92, marginRight: gap }]}>
+    <View style={[styles.portraitCluster, { width: clusterSize, height: clusterHeight, marginRight: gap }]}>
       <View style={styles.centerGlow} />
       {DISCOVERY_PORTRAITS.map((portrait) => (
         <Portrait
@@ -247,29 +258,79 @@ export default function DiscoveryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        
-        <Animated.View entering={FadeInUp.duration(600).springify()}>
-          <Text style={styles.title}>
-            Khám phá sự phát triển{'\n'}tiềm năng của cá nhân{'\n'}hóa lộ trình
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingTop: isCompactHeight ? 24 : isMediumHeight ? 36 : 48,
+            paddingBottom: isCompactHeight ? 18 : 28,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <Animated.View entering={FadeInUp.duration(600).springify()} style={styles.header}>
+          <Text
+            style={[
+              styles.title,
+              {
+                maxWidth: contentMaxWidth,
+                fontSize: titleFontSize,
+                lineHeight: titleLineHeight,
+                marginBottom: isCompactHeight ? 16 : isMediumHeight ? 20 : 28,
+              },
+            ]}
+          >
+            Khám phá lộ trình cá nhân hóa phù hợp với bạn
           </Text>
         </Animated.View>
 
         {/* Avatar Graphic Section */}
-        <View style={styles.graphicContainer}>
-          <Animated.View style={marqueeStyle}>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.graphicContainer,
+            {
+              width: contentMaxWidth,
+              height: clusterHeight,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              marqueeStyle,
+              {
+                width: repeatWidth * 2,
+                marginLeft: marqueeInset,
+              },
+            ]}
+          >
             <ClusterView />
             <ClusterView />
           </Animated.View>
         </View>
 
-        <Animated.View entering={FadeInDown.delay(800).duration(600)} style={styles.textSection}>
-           <Text style={styles.description}>
-             Quá trình thực hiện dựa trên dữ liệu về cơ thể của bạn đảm bảo lộ trình cải thiện đạt kết quả tốt nhất. Hơn <Text style={styles.boldBlue}>110.986</Text> người Mỹ đã không còn phải sống chung với cơn đau mỗi ngày — giờ đến lượt bạn.
-           </Text>
+        <Animated.View
+          entering={FadeInDown.delay(800).duration(600)}
+          style={[
+            styles.textSection,
+            {
+              maxWidth: contentMaxWidth,
+              marginTop: isCompactHeight ? 18 : 24,
+            },
+          ]}
+        >
+          <Text style={[styles.description, { fontSize: descriptionFontSize, lineHeight: descriptionLineHeight }]}>
+            Dữ liệu cơ thể giúp TheraHome đề xuất lộ trình cải thiện phù hợp. Hơn <Text style={styles.boldBlue}>110.986</Text> người Mỹ đã không còn phải sống chung với cơn đau mỗi ngày - giờ đến lượt bạn.
+          </Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(1000).duration(600)} style={styles.footer}>
+        <Animated.View
+          entering={FadeInDown.delay(1000).duration(600)}
+          style={[styles.footer, { maxWidth: Math.min(contentMaxWidth, 420) }]}
+        >
           <Button
             mode="contained"
             onPress={handleNext}
@@ -283,7 +344,7 @@ export default function DiscoveryScreen() {
           </Button>
         </Animated.View>
 
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -293,23 +354,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  content: {
+  scroll: {
     flex: 1,
-    paddingHorizontal: width * 0.08,
-    paddingTop: 60,
+  },
+  content: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    width: '100%',
   },
   title: {
-    fontSize: 26,
     fontWeight: 'bold',
     color: '#000000',
     textAlign: 'center',
-    lineHeight: 34,
-    marginBottom: 40,
   },
   graphicContainer: {
-    height: 300,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   portraitCluster: {
     position: 'relative',
@@ -340,14 +404,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   textSection: {
-    marginTop: 8,
-    paddingHorizontal: 10,
+    width: '100%',
+    paddingHorizontal: 4,
   },
   description: {
-    fontSize: 18,
     color: '#000000',
     textAlign: 'center',
-    lineHeight: 28,
   },
   boldBlue: {
     fontWeight: 'bold',
@@ -355,8 +417,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    marginBottom: 40,
+    paddingTop: 24,
     alignItems: 'center',
+    width: '100%',
   },
   button: {
     width: '100%',

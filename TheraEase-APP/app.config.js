@@ -18,7 +18,7 @@ export default {
       supportsTablet: false,
       requireFullScreen: true,
       bundleIdentifier: "vn.therahome.app",
-      buildNumber: "5",
+      buildNumber: "6",
       infoPlist: {
         LSApplicationQueriesSchemes: ["https", "http"]
       }
