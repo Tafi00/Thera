@@ -1,11 +1,11 @@
 /**
- * Auth service - Google Sign-In + Backend JWT
+ * Auth service - Social Sign-In + Backend JWT
  * 
  * Flow:
- * 1. User clicks Google Sign-In
- * 2. Google SDK returns idToken
- * 3. Send idToken to backend /api/auth/google
- * 4. Backend verifies with Google, creates/updates user, returns JWT
+ * 1. User chooses Google, Facebook, or Apple Sign-In
+ * 2. Provider SDK returns a provider token
+ * 3. Send provider token to the matching backend auth endpoint
+ * 4. Backend verifies with the provider, creates/updates user, returns JWT
  * 5. Store JWT in AsyncStorage via api.setToken()
  */
 // import * as WebBrowser from 'expo-web-browser';
@@ -171,6 +171,25 @@ export async function signInWithFacebookToken(accessToken: string): Promise<Soci
     return await completeSocialAuth('/auth/facebook', { accessToken });
   } catch (error) {
     console.error('Facebook auth error:', error);
+    throw error;
+  }
+}
+
+type AppleAuthPayload = {
+  identityToken: string;
+  fullName?: string;
+};
+
+// Gửi Apple identityToken lên backend để đổi lấy JWT của hệ thống
+export async function signInWithAppleToken(payload: AppleAuthPayload): Promise<SocialAuthResponse> {
+  try {
+    if (!payload.identityToken) {
+      throw new Error('Thiếu Apple identityToken');
+    }
+
+    return await completeSocialAuth('/auth/apple', payload);
+  } catch (error) {
+    console.error('Apple auth error:', error);
     throw error;
   }
 }

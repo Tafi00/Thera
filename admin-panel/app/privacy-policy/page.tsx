@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 text-gray-600 space-y-2">
               <li>
-                <strong>Thông tin tài khoản:</strong> Tên, email, ảnh đại diện (thông qua Google Sign-In)
+                <strong>Thông tin tài khoản:</strong> Tên, email, ảnh đại diện (thông qua Google Sign-In, Sign in with Apple hoặc Facebook Login)
               </li>
               <li>
                 <strong>Thông tin hồ sơ sức khỏe:</strong> Tuổi, giới tính, nghề nghiệp, vùng đau, 
@@ -85,7 +85,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 text-gray-600 space-y-2 mt-3">
               <li>Với nhà cung cấp dịch vụ đám mây để lưu trữ dữ liệu an toàn (MongoDB Atlas)</li>
-              <li>Với Google để xác thực tài khoản (Google Sign-In)</li>
+              <li>Với Google, Apple hoặc Facebook để xác thực tài khoản (Google Sign-In, Sign in with Apple hoặc Facebook Login)</li>
               <li>Khi được yêu cầu bởi pháp luật hoặc cơ quan có thẩm quyền</li>
             </ul>
           </section>

@@ -11,7 +11,7 @@ interface AuthLoadingModalProps {
 
 export default function AuthLoadingModal({ 
   visible, 
-  message = 'Đang kết nối với Google...' 
+  message = 'Đang kết nối...' 
 }: AuthLoadingModalProps) {
   return (
     <Modal
@@ -33,7 +33,7 @@ export default function AuthLoadingModal({
             <ActivityIndicator size="large" color="#FFFFFF" />
             <Text style={styles.message}>{message}</Text>
             <Text style={styles.hint}>
-              Bạn sẽ được chuyển đến trang đăng nhập Google
+              Vui lòng hoàn tất đăng nhập để tiếp tục
             </Text>
           </LinearGradient>
         </Animated.View>

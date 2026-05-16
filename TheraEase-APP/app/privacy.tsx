@@ -35,7 +35,7 @@ export default function PrivacyScreen() {
 				<Text style={styles.subTitle}>1.1. Thông tin cá nhân</Text>
 				<Text style={styles.paragraph}>
 					• Họ tên{"\n"}• Tuổi{"\n"}• Nghề nghiệp{"\n"}• Email (nếu đăng nhập
-					bằng Google)
+					bằng Google, Apple hoặc Facebook)
 				</Text>
 
 				<Text style={styles.subTitle}>1.2. Thông tin sức khỏe</Text>
@@ -77,8 +77,8 @@ export default function PrivacyScreen() {
 					Chúng tôi áp dụng các biện pháp bảo mật kỹ thuật và tổ chức phù hợp:
 					{"\n"}• Mã hóa dữ liệu khi truyền tải (SSL/TLS){"\n"}• Lưu trữ dữ liệu
 					trên hệ thống đám mây bảo mật cao{"\n"}• Xác thực người dùng qua
-					Google OAuth{"\n"}• Kiểm soát truy cập nghiêm ngặt{"\n"}• Sao lưu dữ
-					liệu định kỳ
+					Google OAuth, Sign in with Apple hoặc Facebook Login{"\n"}• Kiểm soát
+					truy cập nghiêm ngặt{"\n"}• Sao lưu dữ liệu định kỳ
 				</Text>
 
 				<Text style={styles.sectionTitle}>5. Quyền của bạn</Text>

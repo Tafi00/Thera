@@ -60,7 +60,7 @@ export default function SupportPage() {
                   Làm sao để bắt đầu sử dụng ứng dụng?
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  Tải ứng dụng TheraHome, đăng nhập bằng tài khoản Google, hoàn thành bài khảo sát 
+                  Tải ứng dụng TheraHome, đăng nhập bằng Google, Apple hoặc Facebook, hoàn thành bài khảo sát 
                   sức khỏe ban đầu. Hệ thống sẽ tự động tạo lộ trình phục hồi phù hợp với bạn.
                 </p>
               </div>

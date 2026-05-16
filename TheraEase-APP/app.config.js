@@ -17,9 +17,11 @@ export default {
     ios: {
       supportsTablet: false,
       requireFullScreen: true,
+      usesAppleSignIn: true,
       bundleIdentifier: "vn.therahome.app",
-      buildNumber: "6",
+      buildNumber: "7",
       infoPlist: {
+        CFBundleAllowMixedLocalizations: true,
         LSApplicationQueriesSchemes: ["https", "http"]
       }
     },
@@ -40,6 +42,7 @@ export default {
     },
     plugins: [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-notifications",
         {

@@ -29,6 +29,8 @@ import { useAuthStore } from "@/stores/authStore";
 
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
+import type { AppleAuthenticationFullName } from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
 
@@ -62,6 +64,21 @@ const FACEBOOK_REDIRECT_URI = (() => {
 		native: `fb${FACEBOOK_APP_ID}://authorize`,
 	});
 })();
+
+function formatAppleFullName(fullName: AppleAuthenticationFullName | null) {
+	if (!fullName) return undefined;
+
+	const name = [
+		fullName.givenName,
+		fullName.middleName,
+		fullName.familyName,
+	]
+		.filter(Boolean)
+		.join(" ")
+		.trim();
+
+	return name || undefined;
+}
 
 function TypewriterText() {
 	const [displayText, setDisplayText] = useState("");
@@ -136,6 +153,7 @@ export default function LoginScreen() {
 	const user = useAuthStore((state) => state.user);
 	const [loading, setLoading] = useState(false);
 	const [authMessage, setAuthMessage] = useState("Đang kết nối với Google...");
+	const [appleAvailable, setAppleAvailable] = useState(false);
 
 	const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
 		iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -159,6 +177,24 @@ export default function LoginScreen() {
 			scopes: FACEBOOK_PERMISSIONS,
 			redirectUri: FACEBOOK_REDIRECT_URI,
 		});
+
+	useEffect(() => {
+		let mounted = true;
+
+		if (Platform.OS !== "ios") return;
+
+		AppleAuthentication.isAvailableAsync()
+			.then((available) => {
+				if (mounted) setAppleAvailable(available);
+			})
+			.catch(() => {
+				if (mounted) setAppleAvailable(false);
+			});
+
+		return () => {
+			mounted = false;
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!user) return;
@@ -357,6 +393,49 @@ export default function LoginScreen() {
 		}
 	};
 
+	const handleAppleSignIn = async () => {
+		if (loading) return;
+
+		try {
+			setLoading(true);
+			setAuthMessage("Đang kết nối với Apple...");
+			await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+			const credential = await AppleAuthentication.signInAsync({
+				requestedScopes: [
+					AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+					AppleAuthentication.AppleAuthenticationScope.EMAIL,
+				],
+			});
+
+			if (!credential.identityToken) {
+				throw new Error("Không lấy được identity token từ Apple");
+			}
+
+			setAuthMessage("Đang đăng nhập với Apple...");
+			const { signInWithAppleToken } = await import("@/services/auth");
+			const data = await signInWithAppleToken({
+				identityToken: credential.identityToken,
+				fullName: formatAppleFullName(credential.fullName),
+			});
+
+			await handleAuthSuccess(data.user);
+		} catch (error: any) {
+			if (error?.code === "ERR_REQUEST_CANCELED") {
+				return;
+			}
+
+			console.error("Apple login error:", error);
+			await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+			Alert.alert(
+				"Đăng nhập Apple thất bại",
+				error?.message || "Có lỗi xảy ra",
+			);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	const handleTokenFromFacebook = async (accessToken: string) => {
 		try {
 			setAuthMessage("Đang đăng nhập với Facebook...");
@@ -525,10 +604,24 @@ export default function LoginScreen() {
 							entering={FadeInDown.delay(800)}
 							style={styles.buttonContainer}
 						>
+							{appleAvailable && (
+								<AppleAuthentication.AppleAuthenticationButton
+									buttonType={
+										AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+									}
+									buttonStyle={
+										AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+									}
+									cornerRadius={20}
+									style={styles.appleButton}
+									onPress={handleAppleSignIn}
+								/>
+							)}
+
 							<Button
 								mode="contained"
 								onPress={handleGoogleSignIn}
-								loading={loading}
+								loading={loading && authMessage.includes("Google")}
 								disabled={loading || !request}
 								style={styles.button}
 								contentStyle={styles.buttonContent}
@@ -660,6 +753,10 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 8,
+	},
+	appleButton: {
+		width: "100%",
+		height: 56,
 	},
 	buttonContent: { paddingVertical: 12 },
 	termsContainer: {

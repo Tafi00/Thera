@@ -3,8 +3,10 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
 	{
-		// Google OAuth fields
+		// Social auth fields
 		googleId: { type: String, sparse: true },
+		appleId: { type: String, sparse: true },
+		facebookId: { type: String, sparse: true },
 		email: { type: String, required: true, unique: true },
 		full_name: { type: String, default: "" },
 		avatar_url: { type: String, default: "" },
