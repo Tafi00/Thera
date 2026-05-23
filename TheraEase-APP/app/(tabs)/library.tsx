@@ -22,8 +22,8 @@ const DEFAULT_CATEGORIES = [
   'Hiểu đúng về bài tập',
   'Liệu pháp MC GILL',
   'Liệu pháp MC KENZIE',
-  'Yoga Trị Liệu',
-  'Dưỡng sinh Trị liệu',
+  'Bổ trợ Yoga',
+  'Bổ trợ Dưỡng sinh',
   'Tập cùng TheraNECK'
 ];
 
@@ -71,8 +71,9 @@ export default function LibraryScreen() {
 
   // Group items by category
   const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
+    const category = item.category;
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(item);
     return acc;
   }, {} as Record<string, LibraryItem[]>);
 

@@ -9,8 +9,8 @@ const librarySchema = new mongoose.Schema({
       'Hiểu đúng về bài tập',
       'Liệu pháp MC GILL',
       'Liệu pháp MC KENZIE',
-      'Yoga Trị Liệu',
-      'Dưỡng sinh Trị liệu',
+      'Bổ trợ Yoga',
+      'Bổ trợ Dưỡng sinh',
       'Tập cùng TheraNECK'
     ]
   },
